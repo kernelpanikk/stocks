@@ -12,38 +12,50 @@
 <link rel="icon" href="/icon-192.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <title>Borsa</title>
+<script>
+// tema prima del primo paint, per evitare il lampo chiaro
+try { const t = JSON.parse(localStorage.getItem("borsa.theme")); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch(e){}
+</script>
 <style>
 :root{
-  --bg:#f4f5f7; --card:#ffffff; --text:#111418; --muted:#6b7280; --line:#e5e7eb;
+  --bg:#f4f5f7; --card:#ffffff; --text:#111418; --muted:#6b7280; --line:#e5e7eb; --grid:#eef0f3;
   --up:#16a34a; --down:#dc2626; --accent:#2563eb; --chip:#eef0f3; --shadow:0 1px 2px rgba(0,0,0,.06);
+  color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
-  :root{ --bg:#0b0d10; --card:#15181d; --text:#f2f4f7; --muted:#8b93a1; --line:#232830;
-    --up:#30d158; --down:#ff453a; --accent:#4c8dff; --chip:#1f242b; --shadow:none; }
+  :root:not([data-theme="light"]){ --bg:#0b0d10; --card:#15181d; --text:#f2f4f7; --muted:#8b93a1; --line:#232830; --grid:#1d2128;
+    --up:#30d158; --down:#ff453a; --accent:#4c8dff; --chip:#1f242b; --shadow:none; color-scheme:dark; }
 }
+:root[data-theme="dark"]{ --bg:#0b0d10; --card:#15181d; --text:#f2f4f7; --muted:#8b93a1; --line:#232830; --grid:#1d2128;
+  --up:#30d158; --down:#ff453a; --accent:#4c8dff; --chip:#1f242b; --shadow:none; color-scheme:dark; }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--text);
   font:15px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif}
 body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
-.wrap{max-width:640px;margin:0 auto;padding:12px 16px 40px}
-header{display:flex;align-items:center;justify-content:space-between;padding:8px 0 12px}
+.wrap{padding:16px clamp(16px,2.5vw,48px) 40px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0 12px}
 h1{font-size:28px;margin:0;letter-spacing:-.02em}
 .sub{color:var(--muted);font-size:12px}
+.hbtns{display:flex;gap:8px}
 .iconbtn{border:0;background:var(--chip);color:var(--text);width:38px;height:38px;border-radius:50%;
-  font-size:22px;line-height:38px;cursor:pointer}
-.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  font-size:20px;line-height:38px;cursor:pointer;padding:0}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .seg{display:inline-flex;background:var(--chip);border-radius:10px;padding:3px}
 .seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:600;
   padding:6px 11px;border-radius:8px;cursor:pointer}
 .seg button.on{background:var(--card);color:var(--text);box-shadow:var(--shadow)}
-.list{display:flex;flex-direction:column;gap:8px}
-.row{display:grid;grid-template-columns:1fr 84px auto;align-items:center;gap:10px;background:var(--card);
-  border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);cursor:pointer}
-.row .nm{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row .sym{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row svg{width:84px;height:34px;display:block}
-.row .r{text-align:right;min-width:92px}
-.row .px{font-weight:600;font-variant-numeric:tabular-nums}
+.list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,560px),1fr));gap:16px}
+@media (max-width:600px){ .list{grid-template-columns:1fr;gap:10px} }
+.card{background:var(--card);border-radius:14px;padding:14px 14px 6px;box-shadow:var(--shadow);cursor:pointer;min-width:0}
+.chead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.chead > div:first-child{min-width:0}
+.nm{font-weight:650;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sym{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r{text-align:right;white-space:nowrap}
+.px{font-weight:650;font-size:20px;font-variant-numeric:tabular-nums}
+.ctip{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;min-height:16px;margin:6px 0 2px}
+svg.chart{display:block;width:100%;height:clamp(170px,26vh,380px);touch-action:pan-y}
+svg.chart .ax{fill:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
 .pill{display:inline-block;margin-top:3px;font-size:12.5px;font-weight:650;padding:2px 7px;border-radius:6px;
   color:#fff;font-variant-numeric:tabular-nums}
 .up{background:var(--up)} .down{background:var(--down)} .flat{background:var(--muted)}
@@ -54,15 +66,24 @@ h1{font-size:28px;margin:0;letter-spacing:-.02em}
 .sheet.open{display:flex}
 .panel{background:var(--bg);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;
   padding:14px 16px calc(20px + env(safe-area-inset-bottom))}
+.panel.wide{max-width:1400px}
+@media (min-width:900px){
+  .sheet{align-items:center}
+  .panel{border-radius:18px;width:92vw;padding:20px 24px 24px}
+  .grab{display:none}
+}
 .grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 10px}
 .dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-.dname{font-size:20px;font-weight:700;margin:0}
+.dname{font-size:22px;font-weight:700;margin:0}
 .dmeta{color:var(--muted);font-size:12px}
-.dprice{font-size:32px;font-weight:700;margin:10px 0 0;font-variant-numeric:tabular-nums}
+.dprice{font-size:34px;font-weight:700;margin:10px 0 0;font-variant-numeric:tabular-nums}
 .dchg{font-weight:650;font-variant-numeric:tabular-nums}
-.chartbox{position:relative;background:var(--card);border-radius:14px;margin:12px 0;padding:8px 0;box-shadow:var(--shadow)}
-.chartbox svg{display:block;width:100%;height:240px;touch-action:none}
-.tip{position:absolute;top:6px;left:12px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-height:16px}
+.chartbox{background:var(--card);border-radius:14px;margin:12px 0;padding:8px 12px 6px;box-shadow:var(--shadow)}
+.chartbox .ctip{margin:2px 0 4px}
+#bigChart{height:clamp(260px,52vh,640px);touch-action:none}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:8px}
+.stat{background:var(--card);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow)}
+.stat .k{color:var(--muted);font-size:12px} .stat .v{font-weight:650;font-variant-numeric:tabular-nums;margin-top:2px}
 .danger{border:0;background:transparent;color:var(--down);font:inherit;font-weight:600;padding:10px 0;cursor:pointer}
 .search{width:100%;font:inherit;font-size:16px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);
   background:var(--card);color:var(--text);outline:none}
@@ -78,7 +99,10 @@ h1{font-size:28px;margin:0;letter-spacing:-.02em}
       <h1>Borsa</h1>
       <div class="sub" id="updated">—</div>
     </div>
-    <button class="iconbtn" id="addBtn" aria-label="Aggiungi titolo">+</button>
+    <div class="hbtns">
+      <button class="iconbtn" id="themeBtn"></button>
+      <button class="iconbtn" id="addBtn" aria-label="Aggiungi titolo">+</button>
+    </div>
   </header>
 
   <div class="controls">
@@ -95,7 +119,7 @@ h1{font-size:28px;margin:0;letter-spacing:-.02em}
 
 <!-- dettaglio -->
 <div class="sheet" id="detail">
-  <div class="panel">
+  <div class="panel wide">
     <div class="grab"></div>
     <div class="dhead">
       <div>
@@ -110,9 +134,10 @@ h1{font-size:28px;margin:0;letter-spacing:-.02em}
       <button data-v="1d">1G</button><button data-v="1w">1S</button><button data-v="1m">1M</button><button data-v="1y">1A</button>
     </div>
     <div class="chartbox">
-      <div class="tip" id="tip"></div>
-      <svg id="bigChart" viewBox="0 0 600 240" preserveAspectRatio="none"></svg>
+      <div class="ctip" id="tip"></div>
+      <svg class="chart" id="bigChart"></svg>
     </div>
+    <div class="stats" id="stats"></div>
     <button class="danger" id="removeBtn">Rimuovi dalla lista</button>
   </div>
 </div>
@@ -145,11 +170,26 @@ function save(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }c
 let watch = load("borsa.watch", DEFAULT_LIST);
 let range = load("borsa.range", "1d");
 let cur = load("borsa.cur", "EUR");
+let theme = load("borsa.theme", "auto");
 let detailSym = null, detailRange = "1d";
 const cache = {};   // key symbol|range -> data
 const fx = {};      // "USDEUR" -> rate
 
 const $ = (id) => document.getElementById(id);
+
+// ---------- tema ----------
+const THEMES = { auto: ["◐", "Tema: automatico"], dark: ["☾", "Tema: scuro"], light: ["☀", "Tema: chiaro"] };
+function applyTheme(){
+  if (theme === "auto") delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = theme;
+  $("themeBtn").textContent = THEMES[theme][0];
+  $("themeBtn").title = $("themeBtn").ariaLabel = THEMES[theme][1];
+}
+$("themeBtn").onclick = () => {
+  theme = { auto: "dark", dark: "light", light: "auto" }[theme] || "auto";
+  save("borsa.theme", theme); applyTheme();
+};
+applyTheme();
 
 async function getChart(symbol, r){
   const key = symbol + "|" + r;
@@ -198,8 +238,10 @@ function fmt(v, c){
   catch(e){ return v.toFixed(dec) + " " + c; }
 }
 
+function baseOf(d, r){ return r === "1d" ? d.prevClose : (d.points.length ? d.points[0][1] : null); }
+
 function change(d, r){
-  const base = r === "1d" ? d.prevClose : (d.points.length ? d.points[0][1] : null);
+  const base = baseOf(d, r);
   if (!base) return null;
   return (d.price - base) / base * 100;
 }
@@ -210,43 +252,166 @@ function pillHtml(p){
   return `<span class="pill ${cls}">${p >= 0 ? "+" : ""}${p.toFixed(2)}%</span>`;
 }
 
-function sparkPath(points, w, h, pad){
-  if (points.length < 2) return "";
-  let min = Infinity, max = -Infinity;
-  for (const p of points){ if (p[1] < min) min = p[1]; if (p[1] > max) max = p[1]; }
-  if (max === min){ max += 1; min -= 1; }
-  const t0 = points[0][0], t1 = points[points.length - 1][0];
-  return points.map((p, i) => {
-    const x = pad + (p[0] - t0) / (t1 - t0 || 1) * (w - pad * 2);
-    const y = pad + (1 - (p[1] - min) / (max - min)) * (h - pad * 2);
-    return (i ? "L" : "M") + x.toFixed(1) + "," + y.toFixed(1);
-  }).join("");
-}
-
 function colorFor(p){ return p == null ? "var(--muted)" : p >= 0 ? "var(--up)" : "var(--down)"; }
 
+// ---------- grafico con assi ----------
+function niceStep(span, n){
+  const raw = span / Math.max(1, n), mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const k = raw / mag;
+  return (k <= 1 ? 1 : k <= 2 ? 2 : k <= 5 ? 5 : 10) * mag;
+}
+
+// etichetta asse X: chiave di raggruppamento (un tick quando cambia) e testo
+function xKey(t, r){
+  const d = new Date(t);
+  if (r === "1d") return d.getHours();
+  if (r === "1y") return d.getFullYear() * 12 + d.getMonth();
+  return d.toDateString();
+}
+function xLabel(t, r){
+  const d = new Date(t);
+  if (r === "1d") return d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+  if (r === "1w") return d.toLocaleDateString("it-IT", { weekday: "short", day: "numeric" });
+  if (r === "1y") return d.toLocaleDateString("it-IT", { month: "short" }) + (d.getMonth() === 0 ? " " + d.getFullYear() : "");
+  return d.toLocaleDateString("it-IT", { day: "numeric", month: "short" });
+}
+function fmtFull(t, r){
+  const d = new Date(t);
+  const day = d.toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short", year: r === "1y" ? "numeric" : undefined });
+  return r === "1d" || r === "1w" ? day + ", " + d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : day;
+}
+
+let gradId = 0;
+// svg._data = { d, c, p, r }; ridisegna alla dimensione reale dell'elemento (testo nitido)
+function drawChart(svg){
+  const s = svg._data; if (!s) return;
+  const { d, c, p, r } = s;
+  const W = svg.clientWidth, H = svg.clientHeight;
+  if (!W || !H) return;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const padL = 4, padR = 64, padT = 8, padB = 22;
+  const pts = d.points.map((x) => [x[0], x[1] * c.f]);
+  const n = pts.length;
+  if (n < 2){ svg.innerHTML = `<text class="ax" x="${W / 2}" y="${H / 2}" text-anchor="middle">Dati non disponibili</text>`; svg._st = null; return; }
+
+  let min = Infinity, max = -Infinity;
+  for (const q of pts){ if (q[1] < min) min = q[1]; if (q[1] > max) max = q[1]; }
+  const baseLine = r === "1d" && d.prevClose ? d.prevClose * c.f : null;
+  if (baseLine != null){ min = Math.min(min, baseLine); max = Math.max(max, baseLine); }
+  const padV = (max - min) * 0.06 || Math.abs(max) * 0.01 || 1; min -= padV; max += padV;
+
+  const iw = W - padL - padR, ih = H - padT - padB;
+  // asse X per indice: niente buchi per notti e weekend
+  const X = (i) => padL + i / (n - 1) * iw;
+  const Y = (v) => padT + (1 - (v - min) / (max - min)) * ih;
+
+  const step = niceStep(max - min, Math.max(2, Math.floor(ih / 42)));
+  const dec = Math.max(0, -Math.floor(Math.log10(step) + 1e-9));
+  let grid = "";
+  for (let v = Math.ceil(min / step) * step; v <= max; v += step){
+    const y = Y(v).toFixed(1);
+    grid += `<line x1="${padL}" x2="${W - padR}" y1="${y}" y2="${y}" stroke="var(--grid)" stroke-width="1"/>` +
+      `<text class="ax" x="${W - padR + 8}" y="${+y + 4}">${v.toLocaleString("it-IT", { minimumFractionDigits: dec, maximumFractionDigits: dec })}</text>`;
+  }
+
+  let ticks = [];
+  for (let i = 1; i < n; i++) if (xKey(pts[i][0], r) !== xKey(pts[i - 1][0], r)) ticks.push(i);
+  if (r === "1d" || r === "1m") ticks.unshift(0);
+  const maxT = Math.max(2, Math.floor(iw / 80));
+  if (ticks.length > maxT){ const k = Math.ceil(ticks.length / maxT); ticks = ticks.filter((_, j) => j % k === 0); }
+  for (const i of ticks){
+    const x = X(i);
+    if (x > W - padR - 20) continue;
+    grid += `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${padT}" y2="${H - padB}" stroke="var(--grid)" stroke-width="1"/>` +
+      `<text class="ax" x="${Math.max(x, padL + 14).toFixed(1)}" y="${H - 6}" text-anchor="middle">${xLabel(pts[i][0], r)}</text>`;
+  }
+
+  const col = colorFor(p), gid = "g" + (++gradId);
+  const line = pts.map((q, i) => (i ? "L" : "M") + X(i).toFixed(1) + "," + Y(q[1]).toFixed(1)).join("");
+  const area = line + `L${X(n - 1).toFixed(1)},${H - padB}L${X(0).toFixed(1)},${H - padB}Z`;
+  svg.innerHTML = `
+    <defs><linearGradient id="${gid}" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="${col}" stop-opacity=".22"/><stop offset="1" stop-color="${col}" stop-opacity="0"/>
+    </linearGradient></defs>
+    ${grid}
+    ${baseLine != null ? `<line x1="${padL}" x2="${W - padR}" y1="${Y(baseLine)}" y2="${Y(baseLine)}" stroke="var(--muted)" stroke-dasharray="3 4" stroke-width="1"/>` : ""}
+    <path d="${area}" fill="url(#${gid})"/>
+    <path d="${line}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/>
+    <line class="cx" y1="${padT}" y2="${H - padB}" stroke="var(--muted)" stroke-width="1" visibility="hidden"/>
+    <circle class="cd" r="4" fill="${col}" visibility="hidden"/>`;
+  svg._st = { pts, X, Y, n, padL, iw };
+  setIdleTip(svg);
+}
+
+function setIdleTip(svg){
+  const s = svg._data, st = svg._st;
+  if (!svg._tip || !s || !st) return;
+  const vals = st.pts.map((q) => q[1]);
+  svg._tip.textContent = "Max " + fmt(Math.max(...vals), s.c.cur) + " · Min " + fmt(Math.min(...vals), s.c.cur);
+}
+
+function scrub(ev){
+  const svg = ev.currentTarget, st = svg._st, s = svg._data;
+  if (!st) return;
+  const rect = svg.getBoundingClientRect();
+  const clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
+  const i = Math.max(0, Math.min(st.n - 1, Math.round((clientX - rect.left - st.padL) / st.iw * (st.n - 1))));
+  const q = st.pts[i], x = st.X(i);
+  const cx = svg.querySelector(".cx"), cd = svg.querySelector(".cd");
+  cx.setAttribute("x1", x); cx.setAttribute("x2", x); cx.setAttribute("visibility", "visible");
+  cd.setAttribute("cx", x); cd.setAttribute("cy", st.Y(q[1])); cd.setAttribute("visibility", "visible");
+  const base = baseOf(s.d, s.r), b = base ? base * s.c.f : st.pts[0][1];
+  const pc = (q[1] - b) / b * 100;
+  if (svg._tip) svg._tip.textContent = fmtFull(q[0], s.r) + " · " + fmt(q[1], s.c.cur) + " · " + (pc >= 0 ? "+" : "") + pc.toFixed(2) + "%";
+  if (ev.touches && ev.cancelable) ev.preventDefault();
+}
+function endScrub(ev){
+  const svg = ev.currentTarget;
+  svg.querySelectorAll(".cx,.cd").forEach((e) => e.setAttribute("visibility", "hidden"));
+  setIdleTip(svg);
+}
+
+const ro = new ResizeObserver((entries) => entries.forEach((e) => drawChart(e.target)));
+function setupChart(svg, tip, touch){
+  svg._tip = tip;
+  svg.addEventListener("mousemove", scrub);
+  svg.addEventListener("mouseleave", endScrub);
+  if (touch){ // solo nel dettaglio: nelle card il tocco deve poter scorrere la pagina
+    svg.addEventListener("touchstart", scrub, { passive: false });
+    svg.addEventListener("touchmove", scrub, { passive: false });
+    svg.addEventListener("touchend", endScrub);
+  }
+  ro.observe(svg);
+}
+
+// ---------- lista ----------
 async function renderList(){
   const list = $("list");
   if (!watch.length){
     list.innerHTML = '<div class="empty">Nessun titolo. Tocca + per aggiungerne uno.</div>';
     return;
   }
+  list.querySelectorAll("svg").forEach((s) => ro.unobserve(s));
   // scheletro
   list.innerHTML = watch.map((w, i) => `
-    <div class="row" data-i="${i}">
-      <div><div class="nm"></div><div class="sym"></div></div>
-      <svg viewBox="0 0 84 34" preserveAspectRatio="none"></svg>
-      <div class="r"><div class="px">…</div><div class="chg"></div></div>
+    <div class="card" data-i="${i}">
+      <div class="chead">
+        <div><div class="nm"></div><div class="sym"></div></div>
+        <div class="r"><div class="px">…</div><div class="chg"></div></div>
+      </div>
+      <div class="ctip"></div>
+      <svg class="chart"></svg>
     </div>`).join("");
-  list.querySelectorAll(".row").forEach((el) => {
+  list.querySelectorAll(".card").forEach((el) => {
     const w = watch[+el.dataset.i];
     el.querySelector(".nm").textContent = w.label || w.symbol;
     el.querySelector(".sym").textContent = w.symbol;
     el.onclick = () => openDetail(w.symbol);
+    setupChart(el.querySelector("svg"), el.querySelector(".ctip"), false);
   });
 
   await Promise.all(watch.map(async (w, i) => {
-    const el = list.querySelector(`.row[data-i="${i}"]`);
+    const el = list.querySelector(`.card[data-i="${i}"]`);
     try {
       const d = await getChart(w.symbol, range);
       const c = await conv(d);
@@ -254,11 +419,13 @@ async function renderList(){
       el.querySelector(".px").textContent = fmt(d.price * c.f, c.cur);
       el.querySelector(".chg").innerHTML = pillHtml(p);
       el.querySelector(".sym").textContent = w.symbol + (d.exchange ? " · " + d.exchange : "");
-      el.querySelector("svg").innerHTML =
-        `<path d="${sparkPath(d.points, 84, 34, 2)}" fill="none" stroke="${colorFor(p)}" stroke-width="1.6" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
+      const svg = el.querySelector("svg");
+      svg._data = { d, c, p, r: range };
+      drawChart(svg);
     } catch(e){
       el.querySelector(".px").textContent = "n/d";
-      el.querySelector(".chg").innerHTML = '<span class="err">ticker non trovato</span>';
+      el.querySelector(".chg").innerHTML = '<span class="err"></span>';
+      el.querySelector(".err").textContent = e.message;
     }
   }));
   $("updated").textContent = "Aggiornato alle " + new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
@@ -269,7 +436,7 @@ function setSeg(segId, val){
 }
 
 // ---------- dettaglio ----------
-let chartState = null;
+setupChart($("bigChart"), $("tip"), true);
 
 async function openDetail(symbol){
   detailSym = symbol;
@@ -277,7 +444,8 @@ async function openDetail(symbol){
   const w = watch.find((x) => x.symbol === symbol);
   $("dName").textContent = (w && w.label) || symbol;
   $("dMeta").textContent = symbol;
-  $("dPrice").textContent = "…"; $("dChg").textContent = ""; $("bigChart").innerHTML = ""; $("tip").textContent = "";
+  $("dPrice").textContent = "…"; $("dChg").textContent = ""; $("bigChart").innerHTML = ""; $("tip").textContent = ""; $("stats").innerHTML = "";
+  $("bigChart")._data = null;
   $("detail").classList.add("open");
   setSeg("dRangeSeg", detailRange);
   await renderDetail();
@@ -290,88 +458,40 @@ async function renderDetail(){
     if (sym !== detailSym || r !== detailRange) return;
     const c = await conv(d);
     const p = change(d, r);
-    const base = r === "1d" ? d.prevClose : (d.points.length ? d.points[0][1] : null);
+    const base = baseOf(d, r);
     $("dMeta").textContent = [sym, d.name !== sym ? d.name : "", d.exchange, isIndex(d) ? "punti" : (normCur(d).cur + (c.cur && c.cur !== normCur(d).cur ? " → " + c.cur : ""))].filter(Boolean).join(" · ");
     $("dPrice").textContent = fmt(d.price * c.f, c.cur);
     const abs = base ? (d.price - base) * c.f : null;
     const labels = { "1d": "oggi", "1w": "1 settimana", "1m": "1 mese", "1y": "1 anno" };
     $("dChg").innerHTML = p == null ? "" :
       `<span style="color:${colorFor(p)}">${abs >= 0 ? "+" : ""}${fmt(abs, c.cur)} (${p >= 0 ? "+" : ""}${p.toFixed(2)}%)</span> <span class="dmeta">${labels[r]}</span>`;
-    drawBig(d, c, p, r);
+    const svg = $("bigChart");
+    svg._data = { d, c, p, r };
+    drawChart(svg);
+    renderStats(d, c, r, base);
   } catch(e){
     $("dPrice").textContent = "n/d";
-    $("dChg").innerHTML = '<span class="err">Impossibile caricare i dati</span>';
+    $("dChg").innerHTML = '<span class="err"></span>';
+    $("dChg").querySelector(".err").textContent = "Impossibile caricare i dati: " + e.message;
   }
 }
 
-function drawBig(d, c, p, r){
-  const svg = $("bigChart");
-  const W = 600, H = 240, padX = 8, padT = 28, padB = 18;
-  const pts = d.points.map((x) => [x[0], x[1] * c.f]);
-  if (pts.length < 2){ svg.innerHTML = ""; $("tip").textContent = "Dati non disponibili"; return; }
-  let min = Infinity, max = -Infinity;
-  for (const q of pts){ if (q[1] < min) min = q[1]; if (q[1] > max) max = q[1]; }
-  let baseLine = r === "1d" && d.prevClose ? d.prevClose * c.f : null;
-  if (baseLine != null){ min = Math.min(min, baseLine); max = Math.max(max, baseLine); }
-  const padV = (max - min) * 0.08 || 1; min -= padV; max += padV;
-  const t0 = pts[0][0], t1 = pts[pts.length - 1][0];
-  const X = (t) => padX + (t - t0) / (t1 - t0 || 1) * (W - padX * 2);
-  const Y = (v) => padT + (1 - (v - min) / (max - min)) * (H - padT - padB);
-  const col = colorFor(p);
-  const line = pts.map((q, i) => (i ? "L" : "M") + X(q[0]).toFixed(1) + "," + Y(q[1]).toFixed(1)).join("");
-  const area = line + `L${X(t1).toFixed(1)},${H - padB}L${X(t0).toFixed(1)},${H - padB}Z`;
-  svg.innerHTML = `
-    <defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0" stop-color="${col}" stop-opacity=".25"/><stop offset="1" stop-color="${col}" stop-opacity="0"/>
-    </linearGradient></defs>
-    ${baseLine != null ? `<line x1="${padX}" x2="${W - padX}" y1="${Y(baseLine)}" y2="${Y(baseLine)}" stroke="var(--muted)" stroke-dasharray="3 4" stroke-width="1" vector-effect="non-scaling-stroke"/>` : ""}
-    <path d="${area}" fill="url(#g)"/>
-    <path d="${line}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
-    <line id="cx" x1="0" x2="0" y1="${padT - 6}" y2="${H - padB}" stroke="var(--muted)" stroke-width="1" vector-effect="non-scaling-stroke" visibility="hidden"/>
-    <circle id="cd" r="4" fill="${col}" visibility="hidden"/>
-    <text x="${W - padX}" y="${H - 4}" text-anchor="end" font-size="11" fill="var(--muted)">${fmtTime(t1, r)}</text>
-    <text x="${padX}" y="${H - 4}" font-size="11" fill="var(--muted)">${fmtTime(t0, r)}</text>`;
-  chartState = { pts, X, Y, W, r, c };
-  $("tip").textContent = "Max " + fmt(Math.max(...pts.map((q) => q[1])), c.cur) + " · Min " + fmt(Math.min(...pts.map((q) => q[1])), c.cur);
+function renderStats(d, c, r, base){
+  const vals = d.points.map((x) => x[1] * c.f);
+  const hi = vals.length ? Math.max(...vals) : null, lo = vals.length ? Math.min(...vals) : null;
+  const items = [
+    [r === "1d" ? "Chiusura prec." : "Inizio periodo", base != null ? fmt(base * c.f, c.cur) : "—"],
+    ["Massimo periodo", fmt(hi, c.cur)],
+    ["Minimo periodo", fmt(lo, c.cur)],
+    ["Escursione", hi != null && lo ? ((hi - lo) / lo * 100).toFixed(2) + "%" : "—"],
+    ["Ultimo prezzo", d.marketTime ? fmtFull(d.marketTime, "1d") : "—"],
+  ];
+  $("stats").innerHTML = items.map(() => '<div class="stat"><div class="k"></div><div class="v"></div></div>').join("");
+  $("stats").querySelectorAll(".stat").forEach((el, i) => {
+    el.querySelector(".k").textContent = items[i][0];
+    el.querySelector(".v").textContent = items[i][1];
+  });
 }
-
-function fmtTime(t, r){
-  const dt = new Date(t);
-  if (r === "1d") return dt.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
-  if (r === "1w") return dt.toLocaleDateString("it-IT", { weekday: "short", day: "numeric" }) + " " + dt.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
-  return dt.toLocaleDateString("it-IT", { day: "numeric", month: "short", year: r === "1y" ? "2-digit" : undefined });
-}
-
-function scrub(ev){
-  if (!chartState) return;
-  const svg = $("bigChart");
-  const rect = svg.getBoundingClientRect();
-  const clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
-  const xv = (clientX - rect.left) / rect.width * chartState.W;
-  const { pts, X, Y, c, r } = chartState;
-  let best = 0, bd = Infinity;
-  for (let i = 0; i < pts.length; i++){ const dd = Math.abs(X(pts[i][0]) - xv); if (dd < bd){ bd = dd; best = i; } }
-  const q = pts[best];
-  const cx = svg.querySelector("#cx"), cd = svg.querySelector("#cd");
-  cx.setAttribute("x1", X(q[0])); cx.setAttribute("x2", X(q[0])); cx.setAttribute("visibility", "visible");
-  cd.setAttribute("cx", X(q[0])); cd.setAttribute("cy", Y(q[1])); cd.setAttribute("visibility", "visible");
-  const first = pts[0][1];
-  const pc = (q[1] - first) / first * 100;
-  $("tip").textContent = fmtTime(q[0], r) + " · " + fmt(q[1], c.cur) + " · " + (pc >= 0 ? "+" : "") + pc.toFixed(2) + "% dall'inizio";
-  if (ev.cancelable) ev.preventDefault();
-}
-function endScrub(){
-  const svg = $("bigChart");
-  const cx = svg.querySelector("#cx"), cd = svg.querySelector("#cd");
-  if (cx) cx.setAttribute("visibility", "hidden");
-  if (cd) cd.setAttribute("visibility", "hidden");
-}
-const big = $("bigChart");
-big.addEventListener("touchstart", scrub, { passive: false });
-big.addEventListener("touchmove", scrub, { passive: false });
-big.addEventListener("touchend", endScrub);
-big.addEventListener("mousemove", scrub);
-big.addEventListener("mouseleave", endScrub);
 
 // ---------- aggiunta ----------
 let searchTimer = null;
@@ -431,6 +551,7 @@ $("removeBtn").onclick = () => {
 // ---------- controlli ----------
 document.querySelectorAll("[data-close]").forEach((b) => b.onclick = () => b.closest(".sheet").classList.remove("open"));
 document.querySelectorAll(".sheet").forEach((s) => s.addEventListener("click", (e) => { if (e.target === s) s.classList.remove("open"); }));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.querySelectorAll(".sheet.open").forEach((s) => s.classList.remove("open")); });
 
 $("rangeSeg").onclick = (e) => {
   const v = e.target.dataset.v; if (!v) return;

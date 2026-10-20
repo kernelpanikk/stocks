@@ -6,6 +6,7 @@ Web app (PWA) per seguire titoli e indici: aggiungi/rimuovi ticker, scegli valut
 - `public/index.html` — tutta l'interfaccia (HTML/CSS/JS, nessuna dipendenza). Watchlist salvata in localStorage.
 - `netlify/edge-functions/chart.js` — `/api/chart?symbol=GOOGL&range=1d|1w|1m|1y`, proxy verso Yahoo Finance (serve per evitare il blocco CORS del browser).
 - `netlify/edge-functions/search.js` — `/api/search?q=nvidia`, ricerca ticker.
+- `netlify/edge-functions/fundamentals.js` — `/api/fundamentals?symbol=AAPL`, indicatori di bilancio e stime di valore (`netlify/lib/valuation.mjs`).
 - `netlify.toml` — publish `public`.
 
 ## Avvio in locale

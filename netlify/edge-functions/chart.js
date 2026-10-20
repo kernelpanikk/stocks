@@ -67,4 +67,5 @@ export default async (req) => {
   }
 };
 
-export const config = { path: "/api/chart" };
+// cache manual: la CDN rispetta Netlify-CDN-Cache-Control e Yahoo viene chiamato meno spesso
+export const config = { path: "/api/chart", cache: "manual" };

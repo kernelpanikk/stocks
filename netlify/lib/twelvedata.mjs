@@ -17,7 +17,8 @@ export function tdSymbol(sym) {
 }
 
 async function td(path, params) {
-  const key = process.env.TWELVEDATA_API_KEY;
+  // Netlify.env esiste nelle Edge Functions (Deno); process.env solo in Node (test)
+  const key = globalThis.Netlify ? Netlify.env.get("TWELVEDATA_API_KEY") : process.env.TWELVEDATA_API_KEY;
   if (!key) throw new Error("TWELVEDATA_API_KEY mancante");
   const res = await fetch(BASE + path + "?" + new URLSearchParams({ ...params, apikey: key }));
   const json = await res.json();

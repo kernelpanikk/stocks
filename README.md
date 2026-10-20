@@ -17,4 +17,6 @@ Poi apri http://localhost:8888
 Yahoo risponde a intermittenza 429 (Too Many Requests), soprattutto dagli IP dei data center.
 `netlify/lib/yahoo.mjs` prova query1; su 401/429 ritenta su query2 con cookie (fc.yahoo.com) + crumb.
 Le risposte sono in cache CDN (chart 5 min, search 1 h) per ridurre le chiamate.
-Se non basta: Twelve Data (API key gratuita, ma solo titoli USA nel piano free).
+Se Yahoo fallisce, `netlify/lib/twelvedata.mjs` usa Twelve Data (piano gratuito: solo titoli USA e cambi, 8 richieste/min).
+Serve `TWELVEDATA_API_KEY`: in locale nel file `.env` (escluso da git), in produzione nelle Environment variables di Netlify.
+Test: `node --test netlify/lib/*.test.mjs`

@@ -2,6 +2,9 @@
 // GET /api/search?q=nvidia
 
 import { yahooJson } from "../lib/yahoo.mjs";
+import { tdSearch } from "../lib/twelvedata.mjs";
+
+const CACHE = { "Cache-Control": "public, max-age=300", "Netlify-CDN-Cache-Control": "public, max-age=3600" };
 
 export default async (req) => {
   const q = (new URL(req.url).searchParams.get("q") || "").trim();
@@ -22,9 +25,13 @@ export default async (req) => {
         exchange: x.exchDisp || x.exchange || "",
         type: x.typeDisp || x.quoteType || "",
       }));
-    return Response.json({ results }, { headers: { "Cache-Control": "public, max-age=300", "Netlify-CDN-Cache-Control": "public, max-age=3600" } });
+    return Response.json({ results }, { headers: CACHE });
   } catch (e) {
-    return Response.json({ results: [], error: "errore di rete", detail: String(e.message || e) }, { status: 502 });
+    try {
+      return Response.json({ results: await tdSearch(q) }, { headers: CACHE });
+    } catch (e2) {
+      return Response.json({ results: [], error: "errore di rete", detail: `Yahoo: ${e.message}; Twelve Data: ${e2.message}` }, { status: 502 });
+    }
   }
 };
 

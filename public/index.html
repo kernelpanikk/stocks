@@ -150,11 +150,12 @@ svg.chart .ax{fill:var(--muted);font-size:12px;font-variant-numeric:tabular-nums
 .val h3{font:600 22px/1.2 "Source Serif 4",Georgia,serif;margin:0 0 2px}
 .val h4{font-size:15px;margin:18px 0 8px}
 .vlist{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
-.vrow{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;background:var(--card);border:1px solid var(--line);
+.vrow{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-content:start;background:var(--card);border:1px solid var(--line);
   border-radius:12px;padding:10px 12px}
-.vrow .k{font-weight:600} .vrow .n{color:var(--muted);font-size:13px;margin-top:2px}
+.vrow .k{font-weight:600}
 .vrow .v{font-weight:600;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
-.vrow .d{color:var(--muted);font-size:13px;text-align:right;white-space:nowrap}
+.vrow .d{grid-column:1/-1;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.vrow .n{grid-column:1/-1;color:var(--muted);font-size:13px;margin-top:4px}
 .val details{margin-top:14px} .val summary{cursor:pointer;font-weight:600;color:var(--accent)}
 .val dl{margin:10px 0 0} .val dt{font-weight:600;margin-top:8px} .val dd{margin:2px 0 0;color:var(--muted);font-size:14px}
 .val .disc{color:var(--muted);font-size:13px;margin-top:12px}
@@ -859,8 +860,9 @@ function renderValuation(f){
     <h4>${t("estimatesTitle")}</h4>
     <div class="vlist">${ests.map((e) => `
       <div class="vrow">
-        <div><div class="k">${t("e_" + e.id)}</div><div class="n">${note(e)}</div></div>
-        <div><div class="v">${e.value == null ? "—" : fmt(e.value, cur)}</div>${e.diff == null ? "" : `<div class="d">${pct(e.diff * 100)} ${t("vsPrice")}</div>`}</div>
+        <div class="k">${t("e_" + e.id)}</div><div class="v">${e.value == null ? "—" : fmt(e.value, cur)}</div>
+        ${e.diff == null ? "" : `<div class="d">${pct(e.diff * 100)} ${t("vsPrice")}</div>`}
+        <div class="n">${note(e)}</div>
       </div>`).join("")}
     </div>
     ${valid.length ? `<p class="dmeta" style="margin:10px 0 0">${t("estSummary")(above, valid.length)}</p>` : ""}

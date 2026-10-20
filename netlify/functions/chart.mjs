@@ -55,7 +55,7 @@ export default async (req) => {
       { headers: { "Cache-Control": "public, max-age=300", "Netlify-CDN-Cache-Control": "public, max-age=300" } }
     );
   } catch (e) {
-    return Response.json({ error: "errore di rete verso Yahoo" }, { status: 502 });
+    return Response.json({ error: "errore di rete verso Yahoo", detail: String(e.message || e) }, { status: 502 });
   }
 };
 

@@ -24,7 +24,7 @@ export default async (req) => {
       }));
     return Response.json({ results }, { headers: { "Cache-Control": "public, max-age=300", "Netlify-CDN-Cache-Control": "public, max-age=3600" } });
   } catch (e) {
-    return Response.json({ results: [], error: "errore di rete" }, { status: 502 });
+    return Response.json({ results: [], error: "errore di rete", detail: String(e.message || e) }, { status: 502 });
   }
 };
 

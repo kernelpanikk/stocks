@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Borsa">
+<meta name="theme-color" content="#0b0d10">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="icon" href="/icon-192.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>Borsa</title>
+<style>
+:root{
+  --bg:#f4f5f7; --card:#ffffff; --text:#111418; --muted:#6b7280; --line:#e5e7eb;
+  --up:#16a34a; --down:#dc2626; --accent:#2563eb; --chip:#eef0f3; --shadow:0 1px 2px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#0b0d10; --card:#15181d; --text:#f2f4f7; --muted:#8b93a1; --line:#232830;
+    --up:#30d158; --down:#ff453a; --accent:#4c8dff; --chip:#1f242b; --shadow:none; }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font:15px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif}
+body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.wrap{max-width:640px;margin:0 auto;padding:12px 16px 40px}
+header{display:flex;align-items:center;justify-content:space-between;padding:8px 0 12px}
+h1{font-size:28px;margin:0;letter-spacing:-.02em}
+.sub{color:var(--muted);font-size:12px}
+.iconbtn{border:0;background:var(--chip);color:var(--text);width:38px;height:38px;border-radius:50%;
+  font-size:22px;line-height:38px;cursor:pointer}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.seg{display:inline-flex;background:var(--chip);border-radius:10px;padding:3px}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:600;
+  padding:6px 11px;border-radius:8px;cursor:pointer}
+.seg button.on{background:var(--card);color:var(--text);box-shadow:var(--shadow)}
+.list{display:flex;flex-direction:column;gap:8px}
+.row{display:grid;grid-template-columns:1fr 84px auto;align-items:center;gap:10px;background:var(--card);
+  border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);cursor:pointer}
+.row .nm{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .sym{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row svg{width:84px;height:34px;display:block}
+.row .r{text-align:right;min-width:92px}
+.row .px{font-weight:600;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;margin-top:3px;font-size:12.5px;font-weight:650;padding:2px 7px;border-radius:6px;
+  color:#fff;font-variant-numeric:tabular-nums}
+.up{background:var(--up)} .down{background:var(--down)} .flat{background:var(--muted)}
+.empty{color:var(--muted);text-align:center;padding:40px 10px}
+.err{color:var(--down);font-size:12px}
+/* sheet */
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:10}
+.sheet.open{display:flex}
+.panel{background:var(--bg);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;
+  padding:14px 16px calc(20px + env(safe-area-inset-bottom))}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 10px}
+.dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.dname{font-size:20px;font-weight:700;margin:0}
+.dmeta{color:var(--muted);font-size:12px}
+.dprice{font-size:32px;font-weight:700;margin:10px 0 0;font-variant-numeric:tabular-nums}
+.dchg{font-weight:650;font-variant-numeric:tabular-nums}
+.chartbox{position:relative;background:var(--card);border-radius:14px;margin:12px 0;padding:8px 0;box-shadow:var(--shadow)}
+.chartbox svg{display:block;width:100%;height:240px;touch-action:none}
+.tip{position:absolute;top:6px;left:12px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-height:16px}
+.danger{border:0;background:transparent;color:var(--down);font:inherit;font-weight:600;padding:10px 0;cursor:pointer}
+.search{width:100%;font:inherit;font-size:16px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);
+  background:var(--card);color:var(--text);outline:none}
+.res{display:flex;justify-content:space-between;gap:10px;padding:12px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.res .a{font-weight:650} .res .b{color:var(--muted);font-size:12px;text-align:right}
+.hint{color:var(--muted);font-size:12px;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Borsa</h1>
+      <div class="sub" id="updated">—</div>
+    </div>
+    <button class="iconbtn" id="addBtn" aria-label="Aggiungi titolo">+</button>
+  </header>
+
+  <div class="controls">
+    <div class="seg" id="rangeSeg">
+      <button data-v="1d">1G</button><button data-v="1w">1S</button><button data-v="1m">1M</button><button data-v="1y">1A</button>
+    </div>
+    <div class="seg" id="curSeg">
+      <button data-v="orig">Orig.</button><button data-v="EUR">€</button><button data-v="USD">$</button>
+    </div>
+  </div>
+
+  <div class="list" id="list"></div>
+</div>
+
+<!-- dettaglio -->
+<div class="sheet" id="detail">
+  <div class="panel">
+    <div class="grab"></div>
+    <div class="dhead">
+      <div>
+        <p class="dname" id="dName"></p>
+        <div class="dmeta" id="dMeta"></div>
+      </div>
+      <button class="iconbtn" data-close aria-label="Chiudi">×</button>
+    </div>
+    <div class="dprice" id="dPrice"></div>
+    <div class="dchg" id="dChg"></div>
+    <div class="seg" id="dRangeSeg" style="margin-top:12px">
+      <button data-v="1d">1G</button><button data-v="1w">1S</button><button data-v="1m">1M</button><button data-v="1y">1A</button>
+    </div>
+    <div class="chartbox">
+      <div class="tip" id="tip"></div>
+      <svg id="bigChart" viewBox="0 0 600 240" preserveAspectRatio="none"></svg>
+    </div>
+    <button class="danger" id="removeBtn">Rimuovi dalla lista</button>
+  </div>
+</div>
+
+<!-- aggiunta -->
+<div class="sheet" id="adder">
+  <div class="panel">
+    <div class="grab"></div>
+    <div class="dhead" style="margin-bottom:10px">
+      <p class="dname">Aggiungi titolo</p>
+      <button class="iconbtn" data-close aria-label="Chiudi">×</button>
+    </div>
+    <input class="search" id="q" placeholder="Nome o ticker (es. Nvidia, ENEL.MI, ^IXIC)" autocomplete="off" autocapitalize="off">
+    <div id="results"></div>
+    <div class="hint">Puoi anche scrivere direttamente un ticker Yahoo Finance e premere Invio.</div>
+  </div>
+</div>
+
+<script>
+const DEFAULT_LIST = [
+  { symbol: "CAN", label: "Canaan" },
+  { symbol: "GOOGL", label: "Google" },
+  { symbol: "^GSPC", label: "S&P 500" },
+  { symbol: "SWDA.MI", label: "MSCI World" }
+];
+
+function load(key, fallback){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } }
+function save(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
+
+let watch = load("borsa.watch", DEFAULT_LIST);
+let range = load("borsa.range", "1d");
+let cur = load("borsa.cur", "EUR");
+let detailSym = null, detailRange = "1d";
+const cache = {};   // key symbol|range -> data
+const fx = {};      // "USDEUR" -> rate
+
+const $ = (id) => document.getElementById(id);
+
+async function getChart(symbol, r){
+  const key = symbol + "|" + r;
+  const c = cache[key];
+  if (c && Date.now() - c.t < 60000) return c.d;
+  const res = await fetch("/api/chart?symbol=" + encodeURIComponent(symbol) + "&range=" + r);
+  const d = await res.json();
+  if (!res.ok) throw new Error(d.error || "errore");
+  cache[key] = { t: Date.now(), d };
+  return d;
+}
+
+function normCur(d){
+  // Borsa di Londra quota in pence
+  if (d.currency === "GBp" || d.currency === "GBX") return { cur: "GBP", k: 0.01 };
+  if (d.currency === "ZAc") return { cur: "ZAR", k: 0.01 };
+  if (d.currency === "ILA") return { cur: "ILS", k: 0.01 };
+  return { cur: d.currency, k: 1 };
+}
+
+function isIndex(d){ return d.symbol.startsWith("^") || d.instrumentType === "INDEX"; }
+
+async function getRate(from, to){
+  if (!from || from === to) return 1;
+  const k = from + to;
+  if (fx[k] && Date.now() - fx[k].t < 300000) return fx[k].v;
+  const d = await getChart(from + to + "=X", "1d");
+  fx[k] = { t: Date.now(), v: d.price };
+  return d.price;
+}
+
+// restituisce {factor, cur} per convertire i valori nella valuta scelta
+async function conv(d){
+  if (isIndex(d)) return { f: 1, cur: null };
+  const n = normCur(d);
+  if (cur === "orig") return { f: n.k, cur: n.cur };
+  const rate = await getRate(n.cur, cur);
+  return { f: n.k * rate, cur: cur };
+}
+
+function fmt(v, c){
+  if (v == null || isNaN(v)) return "—";
+  const dec = Math.abs(v) < 10 ? 3 : 2;
+  if (!c) return v.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  try { return v.toLocaleString("it-IT", { style: "currency", currency: c, minimumFractionDigits: dec, maximumFractionDigits: dec }); }
+  catch(e){ return v.toFixed(dec) + " " + c; }
+}
+
+function change(d, r){
+  const base = r === "1d" ? d.prevClose : (d.points.length ? d.points[0][1] : null);
+  if (!base) return null;
+  return (d.price - base) / base * 100;
+}
+
+function pillHtml(p){
+  if (p == null) return '<span class="pill flat">—</span>';
+  const cls = p > 0.004 ? "up" : p < -0.004 ? "down" : "flat";
+  return `<span class="pill ${cls}">${p >= 0 ? "+" : ""}${p.toFixed(2)}%</span>`;
+}
+
+function sparkPath(points, w, h, pad){
+  if (points.length < 2) return "";
+  let min = Infinity, max = -Infinity;
+  for (const p of points){ if (p[1] < min) min = p[1]; if (p[1] > max) max = p[1]; }
+  if (max === min){ max += 1; min -= 1; }
+  const t0 = points[0][0], t1 = points[points.length - 1][0];
+  return points.map((p, i) => {
+    const x = pad + (p[0] - t0) / (t1 - t0 || 1) * (w - pad * 2);
+    const y = pad + (1 - (p[1] - min) / (max - min)) * (h - pad * 2);
+    return (i ? "L" : "M") + x.toFixed(1) + "," + y.toFixed(1);
+  }).join("");
+}
+
+function colorFor(p){ return p == null ? "var(--muted)" : p >= 0 ? "var(--up)" : "var(--down)"; }
+
+async function renderList(){
+  const list = $("list");
+  if (!watch.length){
+    list.innerHTML = '<div class="empty">Nessun titolo. Tocca + per aggiungerne uno.</div>';
+    return;
+  }
+  // scheletro
+  list.innerHTML = watch.map((w, i) => `
+    <div class="row" data-i="${i}">
+      <div><div class="nm"></div><div class="sym"></div></div>
+      <svg viewBox="0 0 84 34" preserveAspectRatio="none"></svg>
+      <div class="r"><div class="px">…</div><div class="chg"></div></div>
+    </div>`).join("");
+  list.querySelectorAll(".row").forEach((el) => {
+    const w = watch[+el.dataset.i];
+    el.querySelector(".nm").textContent = w.label || w.symbol;
+    el.querySelector(".sym").textContent = w.symbol;
+    el.onclick = () => openDetail(w.symbol);
+  });
+
+  await Promise.all(watch.map(async (w, i) => {
+    const el = list.querySelector(`.row[data-i="${i}"]`);
+    try {
+      const d = await getChart(w.symbol, range);
+      const c = await conv(d);
+      const p = change(d, range);
+      el.querySelector(".px").textContent = fmt(d.price * c.f, c.cur);
+      el.querySelector(".chg").innerHTML = pillHtml(p);
+      el.querySelector(".sym").textContent = w.symbol + (d.exchange ? " · " + d.exchange : "");
+      el.querySelector("svg").innerHTML =
+        `<path d="${sparkPath(d.points, 84, 34, 2)}" fill="none" stroke="${colorFor(p)}" stroke-width="1.6" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
+    } catch(e){
+      el.querySelector(".px").textContent = "n/d";
+      el.querySelector(".chg").innerHTML = '<span class="err">ticker non trovato</span>';
+    }
+  }));
+  $("updated").textContent = "Aggiornato alle " + new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+}
+
+function setSeg(segId, val){
+  $(segId).querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.v === val));
+}
+
+// ---------- dettaglio ----------
+let chartState = null;
+
+async function openDetail(symbol){
+  detailSym = symbol;
+  detailRange = range;
+  const w = watch.find((x) => x.symbol === symbol);
+  $("dName").textContent = (w && w.label) || symbol;
+  $("dMeta").textContent = symbol;
+  $("dPrice").textContent = "…"; $("dChg").textContent = ""; $("bigChart").innerHTML = ""; $("tip").textContent = "";
+  $("detail").classList.add("open");
+  setSeg("dRangeSeg", detailRange);
+  await renderDetail();
+}
+
+async function renderDetail(){
+  const sym = detailSym, r = detailRange;
+  try {
+    const d = await getChart(sym, r);
+    if (sym !== detailSym || r !== detailRange) return;
+    const c = await conv(d);
+    const p = change(d, r);
+    const base = r === "1d" ? d.prevClose : (d.points.length ? d.points[0][1] : null);
+    $("dMeta").textContent = [sym, d.name !== sym ? d.name : "", d.exchange, isIndex(d) ? "punti" : (normCur(d).cur + (c.cur && c.cur !== normCur(d).cur ? " → " + c.cur : ""))].filter(Boolean).join(" · ");
+    $("dPrice").textContent = fmt(d.price * c.f, c.cur);
+    const abs = base ? (d.price - base) * c.f : null;
+    const labels = { "1d": "oggi", "1w": "1 settimana", "1m": "1 mese", "1y": "1 anno" };
+    $("dChg").innerHTML = p == null ? "" :
+      `<span style="color:${colorFor(p)}">${abs >= 0 ? "+" : ""}${fmt(abs, c.cur)} (${p >= 0 ? "+" : ""}${p.toFixed(2)}%)</span> <span class="dmeta">${labels[r]}</span>`;
+    drawBig(d, c, p, r);
+  } catch(e){
+    $("dPrice").textContent = "n/d";
+    $("dChg").innerHTML = '<span class="err">Impossibile caricare i dati</span>';
+  }
+}
+
+function drawBig(d, c, p, r){
+  const svg = $("bigChart");
+  const W = 600, H = 240, padX = 8, padT = 28, padB = 18;
+  const pts = d.points.map((x) => [x[0], x[1] * c.f]);
+  if (pts.length < 2){ svg.innerHTML = ""; $("tip").textContent = "Dati non disponibili"; return; }
+  let min = Infinity, max = -Infinity;
+  for (const q of pts){ if (q[1] < min) min = q[1]; if (q[1] > max) max = q[1]; }
+  let baseLine = r === "1d" && d.prevClose ? d.prevClose * c.f : null;
+  if (baseLine != null){ min = Math.min(min, baseLine); max = Math.max(max, baseLine); }
+  const padV = (max - min) * 0.08 || 1; min -= padV; max += padV;
+  const t0 = pts[0][0], t1 = pts[pts.length - 1][0];
+  const X = (t) => padX + (t - t0) / (t1 - t0 || 1) * (W - padX * 2);
+  const Y = (v) => padT + (1 - (v - min) / (max - min)) * (H - padT - padB);
+  const col = colorFor(p);
+  const line = pts.map((q, i) => (i ? "L" : "M") + X(q[0]).toFixed(1) + "," + Y(q[1]).toFixed(1)).join("");
+  const area = line + `L${X(t1).toFixed(1)},${H - padB}L${X(t0).toFixed(1)},${H - padB}Z`;
+  svg.innerHTML = `
+    <defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="${col}" stop-opacity=".25"/><stop offset="1" stop-color="${col}" stop-opacity="0"/>
+    </linearGradient></defs>
+    ${baseLine != null ? `<line x1="${padX}" x2="${W - padX}" y1="${Y(baseLine)}" y2="${Y(baseLine)}" stroke="var(--muted)" stroke-dasharray="3 4" stroke-width="1" vector-effect="non-scaling-stroke"/>` : ""}
+    <path d="${area}" fill="url(#g)"/>
+    <path d="${line}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <line id="cx" x1="0" x2="0" y1="${padT - 6}" y2="${H - padB}" stroke="var(--muted)" stroke-width="1" vector-effect="non-scaling-stroke" visibility="hidden"/>
+    <circle id="cd" r="4" fill="${col}" visibility="hidden"/>
+    <text x="${W - padX}" y="${H - 4}" text-anchor="end" font-size="11" fill="var(--muted)">${fmtTime(t1, r)}</text>
+    <text x="${padX}" y="${H - 4}" font-size="11" fill="var(--muted)">${fmtTime(t0, r)}</text>`;
+  chartState = { pts, X, Y, W, r, c };
+  $("tip").textContent = "Max " + fmt(Math.max(...pts.map((q) => q[1])), c.cur) + " · Min " + fmt(Math.min(...pts.map((q) => q[1])), c.cur);
+}
+
+function fmtTime(t, r){
+  const dt = new Date(t);
+  if (r === "1d") return dt.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+  if (r === "1w") return dt.toLocaleDateString("it-IT", { weekday: "short", day: "numeric" }) + " " + dt.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+  return dt.toLocaleDateString("it-IT", { day: "numeric", month: "short", year: r === "1y" ? "2-digit" : undefined });
+}
+
+function scrub(ev){
+  if (!chartState) return;
+  const svg = $("bigChart");
+  const rect = svg.getBoundingClientRect();
+  const clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
+  const xv = (clientX - rect.left) / rect.width * chartState.W;
+  const { pts, X, Y, c, r } = chartState;
+  let best = 0, bd = Infinity;
+  for (let i = 0; i < pts.length; i++){ const dd = Math.abs(X(pts[i][0]) - xv); if (dd < bd){ bd = dd; best = i; } }
+  const q = pts[best];
+  const cx = svg.querySelector("#cx"), cd = svg.querySelector("#cd");
+  cx.setAttribute("x1", X(q[0])); cx.setAttribute("x2", X(q[0])); cx.setAttribute("visibility", "visible");
+  cd.setAttribute("cx", X(q[0])); cd.setAttribute("cy", Y(q[1])); cd.setAttribute("visibility", "visible");
+  const first = pts[0][1];
+  const pc = (q[1] - first) / first * 100;
+  $("tip").textContent = fmtTime(q[0], r) + " · " + fmt(q[1], c.cur) + " · " + (pc >= 0 ? "+" : "") + pc.toFixed(2) + "% dall'inizio";
+  if (ev.cancelable) ev.preventDefault();
+}
+function endScrub(){
+  const svg = $("bigChart");
+  const cx = svg.querySelector("#cx"), cd = svg.querySelector("#cd");
+  if (cx) cx.setAttribute("visibility", "hidden");
+  if (cd) cd.setAttribute("visibility", "hidden");
+}
+const big = $("bigChart");
+big.addEventListener("touchstart", scrub, { passive: false });
+big.addEventListener("touchmove", scrub, { passive: false });
+big.addEventListener("touchend", endScrub);
+big.addEventListener("mousemove", scrub);
+big.addEventListener("mouseleave", endScrub);
+
+// ---------- aggiunta ----------
+let searchTimer = null;
+$("addBtn").onclick = () => {
+  $("adder").classList.add("open");
+  $("q").value = ""; $("results").innerHTML = "";
+  setTimeout(() => $("q").focus(), 50);
+};
+$("q").addEventListener("input", () => {
+  clearTimeout(searchTimer);
+  const v = $("q").value.trim();
+  if (!v){ $("results").innerHTML = ""; return; }
+  searchTimer = setTimeout(() => doSearch(v), 300);
+});
+$("q").addEventListener("keydown", (e) => {
+  if (e.key === "Enter"){ const v = $("q").value.trim().toUpperCase(); if (v) addSymbol(v, v); }
+});
+async function doSearch(v){
+  try {
+    const res = await fetch("/api/search?q=" + encodeURIComponent(v));
+    const d = await res.json();
+    if ($("q").value.trim() !== v) return;
+    const box = $("results");
+    box.innerHTML = "";
+    if (!d.results.length){ box.innerHTML = '<div class="hint">Nessun risultato.</div>'; return; }
+    d.results.forEach((x) => {
+      const el = document.createElement("div");
+      el.className = "res";
+      el.innerHTML = '<div><div class="a"></div><div class="dmeta"></div></div><div class="b"></div>';
+      el.querySelector(".a").textContent = x.symbol;
+      el.querySelector(".dmeta").textContent = x.name;
+      el.querySelector(".b").textContent = [x.exchange, x.type].filter(Boolean).join(" · ");
+      el.onclick = () => addSymbol(x.symbol, shortName(x.name));
+      box.appendChild(el);
+    });
+  } catch(e){ $("results").innerHTML = '<div class="hint">Errore nella ricerca.</div>'; }
+}
+function shortName(n){
+  return n.replace(/,?\s+(Inc\.?|Corporation|Corp\.?|Ltd\.?|S\.p\.A\.?|SpA|N\.V\.|AG|SE|plc|Class [A-C])\b.*$/i, "").trim() || n;
+}
+function addSymbol(symbol, label){
+  if (!watch.some((w) => w.symbol === symbol)){
+    watch.push({ symbol, label });
+    save("borsa.watch", watch);
+  }
+  $("adder").classList.remove("open");
+  renderList();
+}
+
+$("removeBtn").onclick = () => {
+  watch = watch.filter((w) => w.symbol !== detailSym);
+  save("borsa.watch", watch);
+  $("detail").classList.remove("open");
+  renderList();
+};
+
+// ---------- controlli ----------
+document.querySelectorAll("[data-close]").forEach((b) => b.onclick = () => b.closest(".sheet").classList.remove("open"));
+document.querySelectorAll(".sheet").forEach((s) => s.addEventListener("click", (e) => { if (e.target === s) s.classList.remove("open"); }));
+
+$("rangeSeg").onclick = (e) => {
+  const v = e.target.dataset.v; if (!v) return;
+  range = v; save("borsa.range", v); setSeg("rangeSeg", v); renderList();
+};
+$("curSeg").onclick = (e) => {
+  const v = e.target.dataset.v; if (!v) return;
+  cur = v; save("borsa.cur", v); setSeg("curSeg", v); renderList();
+  if ($("detail").classList.contains("open")) renderDetail();
+};
+$("dRangeSeg").onclick = (e) => {
+  const v = e.target.dataset.v; if (!v) return;
+  detailRange = v; setSeg("dRangeSeg", v); renderDetail();
+};
+
+setSeg("rangeSeg", range);
+setSeg("curSeg", cur);
+renderList();
+setInterval(() => { if (!document.hidden) renderList(); }, 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) renderList(); });
+</script>
+</body>
+</html>

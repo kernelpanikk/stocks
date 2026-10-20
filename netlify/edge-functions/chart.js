@@ -11,7 +11,8 @@ const RANGES = {
 import { yahooJson } from "../lib/yahoo.mjs";
 import { tdChart } from "../lib/twelvedata.mjs";
 
-const CACHE = { "Cache-Control": "public, max-age=300", "Netlify-CDN-Cache-Control": "public, max-age=300" };
+// Netlify-Vary: senza, la CDN ha servito risposte di un altro ticker
+const CACHE = { "Cache-Control": "public, max-age=300", "Netlify-CDN-Cache-Control": "public, max-age=300", "Netlify-Vary": "query=symbol|range" };
 
 export default async (req) => {
   const url = new URL(req.url);

@@ -4,7 +4,7 @@
 import { yahooJson } from "../lib/yahoo.mjs";
 import { tdSearch } from "../lib/twelvedata.mjs";
 
-const CACHE = { "Cache-Control": "public, max-age=300", "Netlify-CDN-Cache-Control": "public, max-age=3600" };
+const CACHE = { "Cache-Control": "public, max-age=300", "Netlify-CDN-Cache-Control": "public, max-age=3600", "Netlify-Vary": "query=q" };
 
 export default async (req) => {
   const q = (new URL(req.url).searchParams.get("q") || "").trim();

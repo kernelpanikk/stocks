@@ -9,11 +9,15 @@ const RANGES = {
 
 
 import { yahooJson } from "../lib/yahoo.mjs";
+import { tdChart } from "../lib/twelvedata.mjs";
+
+const CACHE = { "Cache-Control": "public, max-age=300", "Netlify-CDN-Cache-Control": "public, max-age=300" };
 
 export default async (req) => {
   const url = new URL(req.url);
   const symbol = (url.searchParams.get("symbol") || "").trim();
-  const r = RANGES[url.searchParams.get("range")] || RANGES["1d"];
+  const rangeKey = url.searchParams.get("range");
+  const r = RANGES[rangeKey] || RANGES["1d"];
 
   if (!symbol || symbol.length > 30) {
     return Response.json({ error: "symbol mancante" }, { status: 400 });
@@ -52,10 +56,14 @@ export default async (req) => {
         marketTime: (m.regularMarketTime || 0) * 1000,
         points,
       },
-      { headers: { "Cache-Control": "public, max-age=300", "Netlify-CDN-Cache-Control": "public, max-age=300" } }
+      { headers: CACHE }
     );
   } catch (e) {
-    return Response.json({ error: "errore di rete verso Yahoo", detail: String(e.message || e) }, { status: 502 });
+    try {
+      return Response.json(await tdChart(symbol, rangeKey), { headers: CACHE });
+    } catch (e2) {
+      return Response.json({ error: "dati non disponibili", detail: `Yahoo: ${e.message}; Twelve Data: ${e2.message}` }, { status: 502 });
+    }
   }
 };
 

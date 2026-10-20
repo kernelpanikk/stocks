@@ -90,6 +90,15 @@ svg.chart .ax{fill:var(--muted);font-size:11px;font-variant-numeric:tabular-nums
 .res{display:flex;justify-content:space-between;gap:10px;padding:12px 4px;border-bottom:1px solid var(--line);cursor:pointer}
 .res .a{font-weight:650} .res .b{color:var(--muted);font-size:12px;text-align:right}
 .hint{color:var(--muted);font-size:12px;margin-top:10px}
+/* invito all'installazione (solo mobile) */
+.install{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:20;display:none;
+  align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;
+  box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.install.open{display:flex}
+.install img{width:40px;height:40px;border-radius:10px;flex:none}
+.install .t{flex:1;min-width:0;font-size:13px} .install .t b{display:block;font-size:14px}
+.install button{border:0;font:inherit;font-weight:650;font-size:13px;border-radius:9px;padding:8px 12px;cursor:pointer}
+.install .go{background:var(--accent);color:#fff} .install .no{background:transparent;color:var(--muted);padding:8px 4px}
 </style>
 </head>
 <body>
@@ -154,6 +163,13 @@ svg.chart .ax{fill:var(--muted);font-size:11px;font-variant-numeric:tabular-nums
     <div id="results"></div>
     <div class="hint">Puoi anche scrivere direttamente un ticker Yahoo Finance e premere Invio.</div>
   </div>
+</div>
+
+<div class="install" id="install" role="dialog" aria-label="Installa l'app">
+  <img src="/icon-192.png" alt="">
+  <div class="t"><b>Installa Borsa</b><span id="installMsg"></span></div>
+  <button class="go" id="installGo">Installa</button>
+  <button class="no" id="installNo">Non ora</button>
 </div>
 
 <script>
@@ -566,6 +582,32 @@ $("dRangeSeg").onclick = (e) => {
   const v = e.target.dataset.v; if (!v) return;
   detailRange = v; setSeg("dRangeSeg", v); renderDetail();
 };
+
+// ---------- invito all'installazione ----------
+(() => {
+  const installed = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  const android = /Android/.test(navigator.userAgent);
+  // iPadOS si presenta come "MacIntel" con touch
+  const ios = !android && (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
+  const mobile = ios || android;
+  if (installed || !mobile || load("borsa.installDismissed", false)) return;
+  const box = $("install");
+  $("installNo").onclick = () => { box.classList.remove("open"); save("borsa.installDismissed", true); };
+  if (ios){ // iOS non ha un'API di installazione: si spiega come fare
+    $("installMsg").textContent = "Tocca Condividi (□↑), poi “Aggiungi alla schermata Home”.";
+    $("installGo").hidden = true;
+    box.classList.add("open");
+    return;
+  }
+  // Android/Chrome: il banner appare solo quando il browser rende disponibile il prompt nativo
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    $("installMsg").textContent = "Aprila dalla schermata Home, a tutto schermo.";
+    $("installGo").onclick = async () => { box.classList.remove("open"); e.prompt(); await e.userChoice; };
+    box.classList.add("open");
+  });
+  window.addEventListener("appinstalled", () => box.classList.remove("open"));
+})();
 
 setSeg("rangeSeg", range);
 setSeg("curSeg", cur);

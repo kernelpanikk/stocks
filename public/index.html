@@ -60,7 +60,25 @@ svg.chart .ax{fill:var(--muted);font-size:11px;font-variant-numeric:tabular-nums
 .pill{display:inline-block;margin-top:3px;font-size:12.5px;font-weight:650;padding:2px 7px;border-radius:6px;
   color:#fff;font-variant-numeric:tabular-nums}
 .up{background:var(--up)} .down{background:var(--down)} .flat{background:var(--muted)}
-.empty{color:var(--muted);text-align:center;padding:40px 10px}
+.more,.chev{display:none}
+@media (max-width:600px){
+  /* mobile: card chiuse, il tap sull'intestazione le apre */
+  .card{padding-bottom:14px}
+  .card:not(.open) .ctip,.card:not(.open) svg.chart{display:none}
+  .card.open .more{display:block}
+  .more{border:0;background:var(--chip);color:var(--text);font:inherit;font-weight:600;font-size:13px;border-radius:9px;
+    padding:9px;width:100%;margin-top:8px;cursor:pointer}
+  .chev{display:block;align-self:center;color:var(--muted);font-size:20px;line-height:1;transition:transform .15s}
+  .card.open .chev{transform:rotate(90deg)}
+}
+.welcome{grid-column:1/-1;max-width:560px;width:100%;margin:24px auto;background:var(--card);border-radius:16px;
+  padding:24px;box-shadow:var(--shadow)}
+.welcome img{width:56px;height:56px;border-radius:14px}
+.welcome h2{font-size:22px;margin:14px 0 6px;letter-spacing:-.01em}
+.welcome p{margin:0 0 12px;color:var(--muted)}
+.welcome ol{margin:0 0 18px;padding-left:20px} .welcome li{margin-bottom:8px}
+.welcome .go{border:0;background:var(--accent);color:#fff;font:inherit;font-weight:650;border-radius:10px;padding:11px 16px;cursor:pointer}
+.welcome .hint{margin:12px 0 0}
 .err{color:var(--down);font-size:12px}
 /* sheet */
 .sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:10}
@@ -175,17 +193,11 @@ svg.chart .ax{fill:var(--muted);font-size:11px;font-variant-numeric:tabular-nums
 </div>
 
 <script>
-const DEFAULT_LIST = [
-  { symbol: "CAN", label: "Canaan" },
-  { symbol: "GOOGL", label: "Google" },
-  { symbol: "^GSPC", label: "S&P 500" },
-  { symbol: "SWDA.MI", label: "MSCI World" }
-];
 
 function load(key, fallback){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } }
 function save(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
 
-let watch = load("borsa.watch", DEFAULT_LIST);
+let watch = load("borsa.watch", []);
 let range = load("borsa.range", "1d");
 let cur = load("borsa.cur", "EUR");
 let theme = load("borsa.theme", "auto");
@@ -206,7 +218,13 @@ const I18N = {
     installAndroid: "Aprila dalla schermata Home, a tutto schermo.",
     themeAuto: "Tema: automatico", themeDark: "Tema: scuro", themeLight: "Tema: chiaro", lang: "Lingua: italiano",
     noData: "Dati non disponibili", unavailable: "dati non disponibili", loadErr: "Impossibile caricare i dati",
-    empty: "Nessun titolo. Tocca + per aggiungerne uno.", updated: "Aggiornato alle ",
+    updated: "Aggiornato alle ", details: "Dettagli ›",
+    welcomeTitle: "Benvenuto in Borsa",
+    welcomeIntro: "Segui azioni, ETF, indici e cambi di tutto il mondo in un'unica lista.",
+    step1: "Premi + e cerca un titolo per nome o ticker: Nvidia, ENEL.MI, ^GSPC.",
+    step2: "Scegli il periodo (1G, 1S, 1M, 1A) e la valuta in cui vedere i prezzi.",
+    step3: "Apri una card per il grafico completo con massimi, minimi e variazioni.",
+    addFirst: "Aggiungi il primo titolo", welcomeNote: "La lista resta salvata su questo dispositivo.",
     prevClose: "Chiusura prec.", periodStart: "Inizio periodo", high: "Massimo periodo", low: "Minimo periodo",
     rangePct: "Escursione", lastPrice: "Ultimo prezzo", noResults: "Nessun risultato.", searchErr: "Errore nella ricerca.",
     points: "punti", chg1d: "oggi", chg1w: "1 settimana", chg1m: "1 mese", chg1y: "1 anno",
@@ -220,7 +238,13 @@ const I18N = {
     installAndroid: "Open it from your Home Screen, full screen.",
     themeAuto: "Theme: automatic", themeDark: "Theme: dark", themeLight: "Theme: light", lang: "Language: English",
     noData: "No data available", unavailable: "data unavailable", loadErr: "Couldn't load data",
-    empty: "No symbols yet. Tap + to add one.", updated: "Updated at ",
+    updated: "Updated at ", details: "Details ›",
+    welcomeTitle: "Welcome to Borsa",
+    welcomeIntro: "Follow stocks, ETFs, indices and currencies from around the world in one list.",
+    step1: "Press + and search by name or ticker: Nvidia, ENEL.MI, ^GSPC.",
+    step2: "Pick the period (1D, 1W, 1M, 1Y) and the currency for prices.",
+    step3: "Open a card for the full chart with highs, lows and changes.",
+    addFirst: "Add your first symbol", welcomeNote: "Your list is saved on this device.",
     prevClose: "Prev. close", periodStart: "Period start", high: "Period high", low: "Period low",
     rangePct: "Range", lastPrice: "Last price", noResults: "No results.", searchErr: "Search error.",
     points: "points", chg1d: "today", chg1w: "1 week", chg1m: "1 month", chg1y: "1 year",
@@ -459,28 +483,43 @@ function setupChart(svg, tip, touch){
 }
 
 // ---------- lista ----------
+const isMobile = () => matchMedia("(max-width: 600px)").matches;
+const openCards = new Set(); // card aperte su mobile: solo in memoria, all'avvio sono tutte chiuse
 async function renderList(){
   const list = $("list");
-  if (!watch.length){
-    list.innerHTML = '<div class="empty"></div>'; list.firstChild.textContent = t("empty");
+  list.querySelectorAll("svg").forEach((s) => ro.unobserve(s));
+  if (!watch.length){ // testi statici del dizionario: sicuri in innerHTML
+    list.innerHTML = `<div class="welcome">
+      <img src="/icon-192.png" alt="">
+      <h2>${t("welcomeTitle")}</h2><p>${t("welcomeIntro")}</p>
+      <ol><li>${t("step1")}</li><li>${t("step2")}</li><li>${t("step3")}</li></ol>
+      <button class="go" id="welcomeAdd">${t("addFirst")}</button>
+      <p class="hint">${t("welcomeNote")}</p>
+    </div>`;
+    $("welcomeAdd").onclick = () => $("addBtn").click();
+    $("updated").textContent = "—";
     return;
   }
-  list.querySelectorAll("svg").forEach((s) => ro.unobserve(s));
   // scheletro
   list.innerHTML = watch.map((w, i) => `
     <div class="card" data-i="${i}">
       <div class="chead">
         <div><div class="nm"></div><div class="sym"></div></div>
         <div class="r"><div class="px">…</div><div class="chg"></div></div>
+        <span class="chev" aria-hidden="true">›</span>
       </div>
       <div class="ctip"></div>
       <svg class="chart"></svg>
+      <button class="more">${t("details")}</button>
     </div>`).join("");
   list.querySelectorAll(".card").forEach((el) => {
     const w = watch[+el.dataset.i];
     el.querySelector(".nm").textContent = w.label || w.symbol;
     el.querySelector(".sym").textContent = w.symbol;
-    el.onclick = () => openDetail(w.symbol);
+    const setOpen = (o) => { el.classList.toggle("open", o); el.setAttribute("aria-expanded", o); o ? openCards.add(w.symbol) : openCards.delete(w.symbol); };
+    setOpen(openCards.has(w.symbol));
+    // mobile: l'intestazione apre/chiude la card, grafico e "Dettagli" aprono il dettaglio
+    el.onclick = (e) => isMobile() && e.target.closest(".chead") ? setOpen(!el.classList.contains("open")) : openDetail(w.symbol);
     setupChart(el.querySelector("svg"), el.querySelector(".ctip"), false);
   });
 

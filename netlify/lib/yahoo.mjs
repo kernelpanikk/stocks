@@ -9,7 +9,8 @@ async function getSession() {
   const fc = await fetch("https://fc.yahoo.com", { headers: HEADERS, redirect: "manual" });
   const cookie = fc.headers.getSetCookie().map((c) => c.split(";")[0]).join("; ");
   if (!cookie) throw new Error("cookie Yahoo non ricevuto");
-  const res = await fetch("https://query2.finance.yahoo.com/v1/test/getcrumb", { headers: { ...HEADERS, Cookie: cookie } });
+  // il crumb è text/plain: con Accept: application/json Yahoo risponde 406
+  const res = await fetch("https://query2.finance.yahoo.com/v1/test/getcrumb", { headers: { ...HEADERS, Accept: "*/*", Cookie: cookie } });
   const crumb = (await res.text()).trim();
   if (!res.ok || !crumb || crumb.includes("<")) throw new Error("crumb Yahoo non ricevuto: " + res.status);
   return (session = { cookie, crumb });

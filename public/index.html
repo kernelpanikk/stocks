@@ -146,6 +146,18 @@ svg.chart .ax{fill:var(--muted);font-size:12px;font-variant-numeric:tabular-nums
 .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:8px}
 .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .stat .k{color:var(--muted);font-size:13px} .stat .v{font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
+.val{margin:20px 0 8px}
+.val h3{font:600 22px/1.2 "Source Serif 4",Georgia,serif;margin:0 0 2px}
+.val h4{font-size:15px;margin:18px 0 8px}
+.vlist{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.vrow{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:10px 12px}
+.vrow .k{font-weight:600} .vrow .n{color:var(--muted);font-size:13px;margin-top:2px}
+.vrow .v{font-weight:600;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.vrow .d{color:var(--muted);font-size:13px;text-align:right;white-space:nowrap}
+.val details{margin-top:14px} .val summary{cursor:pointer;font-weight:600;color:var(--accent)}
+.val dl{margin:10px 0 0} .val dt{font-weight:600;margin-top:8px} .val dd{margin:2px 0 0;color:var(--muted);font-size:14px}
+.val .disc{color:var(--muted);font-size:13px;margin-top:12px}
 .danger{border:0;background:transparent;color:var(--down);font-weight:600;padding:10px 0;cursor:pointer;text-underline-offset:3px}
 .danger:hover{text-decoration:underline}
 .search{width:100%;font:inherit;font-size:16px;padding:11px 14px;border-radius:6px;border:1px solid var(--field);
@@ -216,6 +228,7 @@ svg.chart .ax{fill:var(--muted);font-size:12px;font-variant-numeric:tabular-nums
       <svg class="chart" id="bigChart"></svg>
     </div>
     <div class="stats" id="stats"></div>
+    <section class="val" id="val" aria-labelledby="valTitle" hidden></section>
     <button type="button" class="danger" id="removeBtn" data-i18n="remove"></button>
   </div>
 </div>
@@ -265,6 +278,26 @@ const I18N = {
     addFirst: "Aggiungi il primo titolo", welcomeNote: "La lista resta salvata su questo dispositivo.",
     prevClose: "Chiusura prec.", periodStart: "Inizio periodo", high: "Massimo periodo", low: "Minimo periodo",
     periodLabel: "Periodo", curLabel: "Valuta",
+    valTitle: "Valutazione", estimatesTitle: "Stime di valore", howToRead: "Come leggere questi indicatori", vsPrice: "rispetto al prezzo",
+    estSummary: (a, n) => `${a} stime su ${n} sono sopra il prezzo attuale.`,
+    disclaimer: "Indicatori calcolati con formule standard sui dati di Yahoo Finance, che possono essere incompleti o in ritardo. Sono strumenti di analisi, non un consiglio d'investimento.",
+    m_pe: "P/E (12 mesi)", m_fwdPe: "P/E stimato", m_peg: "PEG", m_pb: "Prezzo / patrimonio", m_evEbitda: "EV / EBITDA",
+    m_divYield: "Rendimento dividendo", m_roe: "ROE", m_debtEq: "Debito / patrimonio", m_eps: "Utile per azione",
+    d_pe: "Quanti anni di utili attuali servono per ripagare il prezzo. Va confrontato con il settore e con la storia del titolo.",
+    d_fwdPe: "Come il P/E, ma sugli utili stimati dagli analisti per i prossimi 12 mesi.",
+    d_peg: "P/E diviso la crescita attesa degli utili. Intorno a 1 è considerato equilibrato, ma dipende molto dalle stime di crescita.",
+    d_pb: "Prezzo rispetto al valore contabile per azione. Significativo per banche e industria, poco per le aziende tecnologiche.",
+    d_evEbitda: "Valore dell'impresa (capitalizzazione più debito netto) rispetto al margine operativo lordo. Permette di confrontare aziende con debiti diversi.",
+    d_divYield: "Dividendi annui rispetto al prezzo.",
+    d_roe: "Utile netto rispetto al patrimonio: quanto rende il capitale degli azionisti.",
+    d_debtEq: "Debito totale rispetto al patrimonio netto. Valori alti indicano più leva finanziaria.",
+    d_eps: "Utile netto degli ultimi 12 mesi diviso il numero di azioni.",
+    e_graham: "Numero di Graham", e_dcf: "Utili attualizzati (DCF)", e_analyst: "Prezzo obiettivo analisti",
+    n_graham: "√(22,5 × utile per azione × patrimonio per azione). Pensato per aziende stabili e in utile.",
+    n_dcf: (g) => `Crescita degli utili ${g} per 5 anni, poi 2,5% annuo; tasso di sconto 9%.`,
+    n_analyst: (c) => c ? `Media di ${c} analisti.` : "Media degli analisti.",
+    r_currency: "Non calcolabile: bilancio in una valuta diversa dalla quotazione.",
+    r_negative: "Non applicabile: utili o patrimonio negativi.", r_none: "Nessuna stima disponibile.",
     reorder: "Sposta", reorderHint: "Trascina, oppure usa le frecce su e giù per cambiare posizione.", position: "posizione", of: "di",
     zoomLabel: "Zoom", zoomIn: "Ingrandisci", zoomOut: "Riduci", zoomReset: "Reimposta",
     rangePct: "Escursione", lastPrice: "Ultimo prezzo", noResults: "Nessun risultato.", searchErr: "Errore nella ricerca.",
@@ -285,6 +318,26 @@ const I18N = {
     addFirst: "Add your first symbol", welcomeNote: "Your list is saved on this device.",
     prevClose: "Prev. close", periodStart: "Period start", high: "Period high", low: "Period low",
     periodLabel: "Period", curLabel: "Currency",
+    valTitle: "Valuation", estimatesTitle: "Value estimates", howToRead: "How to read these indicators", vsPrice: "versus price",
+    estSummary: (a, n) => `${a} of ${n} estimates are above the current price.`,
+    disclaimer: "Indicators computed with standard formulas on Yahoo Finance data, which may be incomplete or delayed. They are analysis tools, not investment advice.",
+    m_pe: "P/E (TTM)", m_fwdPe: "Forward P/E", m_peg: "PEG", m_pb: "Price / book", m_evEbitda: "EV / EBITDA",
+    m_divYield: "Dividend yield", m_roe: "ROE", m_debtEq: "Debt / equity", m_eps: "EPS (TTM)",
+    d_pe: "How many years of current earnings it takes to pay back the price. Compare it with the sector and the stock's history.",
+    d_fwdPe: "Like P/E, but on analysts' estimated earnings for the next 12 months.",
+    d_peg: "P/E divided by expected earnings growth. Around 1 is considered balanced, but it depends heavily on growth estimates.",
+    d_pb: "Price versus book value per share. Meaningful for banks and industrials, less so for tech companies.",
+    d_evEbitda: "Enterprise value (market cap plus net debt) versus EBITDA. Lets you compare companies with different debt levels.",
+    d_divYield: "Annual dividends versus price.",
+    d_roe: "Net income versus equity: how much shareholders' capital earns.",
+    d_debtEq: "Total debt versus equity. High values mean more financial leverage.",
+    d_eps: "Net income over the last 12 months divided by the number of shares.",
+    e_graham: "Graham number", e_dcf: "Discounted earnings (DCF)", e_analyst: "Analyst price target",
+    n_graham: "√(22.5 × earnings per share × book value per share). Meant for stable, profitable companies.",
+    n_dcf: (g) => `Earnings growth ${g} for 5 years, then 2.5% a year; 9% discount rate.`,
+    n_analyst: (c) => c ? `Average of ${c} analysts.` : "Analysts' average.",
+    r_currency: "Not computable: financials are in a different currency than the quote.",
+    r_negative: "Not applicable: negative earnings or equity.", r_none: "No estimate available.",
     reorder: "Move", reorderHint: "Drag, or use the up and down arrow keys to change position.", position: "position", of: "of",
     zoomLabel: "Zoom", zoomIn: "Zoom in", zoomOut: "Zoom out", zoomReset: "Reset",
     rangePct: "Range", lastPrice: "Last price", noResults: "No results.", searchErr: "Search error.",
@@ -740,7 +793,7 @@ async function openDetail(symbol){
   const w = watch.find((x) => x.symbol === symbol);
   $("dName").textContent = (w && w.label) || symbol;
   $("dMeta").textContent = symbol;
-  $("dPrice").textContent = "…"; $("dChg").textContent = ""; $("bigChart").innerHTML = ""; $("tip").textContent = ""; $("stats").innerHTML = "";
+  $("dPrice").textContent = "…"; $("dChg").textContent = ""; $("bigChart").innerHTML = ""; $("tip").textContent = ""; $("stats").innerHTML = ""; $("val").hidden = true;
   $("bigChart")._data = null;
   openSheet("detail");
   setSeg("dRangeSeg", detailRange);
@@ -765,11 +818,56 @@ async function renderDetail(){
     svg._data = { d, c, p, r };
     fresh ? setView(svg, null) : drawChart(svg); // dati nuovi: zoom azzerato
     renderStats(d, c, r, base);
+    loadValuation(sym);
   } catch(e){
     $("dPrice").textContent = "n/d";
     $("dChg").innerHTML = '<span class="err"></span>';
     $("dChg").querySelector(".err").textContent = t("loadErr"); $("dChg").querySelector(".err").title = e.message;
   }
+}
+
+// ---------- valutazione (solo azioni) ----------
+const fundCache = {};
+async function loadValuation(sym){
+  const box = $("val");
+  try {
+    let f = fundCache[sym];
+    if (!f || Date.now() - f.t > 3600000){
+      const res = await fetch("/api/fundamentals?symbol=" + encodeURIComponent(sym));
+      fundCache[sym] = f = { t: Date.now(), d: res.ok ? await res.json() : null };
+    }
+    if (sym !== detailSym) return;
+    if (!f.d || f.d.quoteType !== "EQUITY"){ box.hidden = true; return; } // ETF, indici, cambi: indicatori non significativi
+    renderValuation(f.d);
+  } catch(e){ box.hidden = true; }
+}
+
+function renderValuation(f){
+  const box = $("val"), m = f.metrics, cur = f.currency;
+  const num = (v, dec = 1) => v == null ? "—" : v.toLocaleString(LOC, { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  const per = (v) => v == null ? "—" : pct(v * 100, false);
+  const metrics = [["pe", num(m.pe)], ["fwdPe", num(m.fwdPe)], ["peg", num(m.peg, 2)], ["pb", num(m.pb)], ["evEbitda", num(m.evEbitda)],
+    ["divYield", per(m.divYield)], ["roe", per(m.roe)], ["debtEq", m.debtEq == null ? "—" : num(m.debtEq / 100, 2)], ["eps", fmt(m.eps, cur)]];
+  const ests = f.estimates;
+  const valid = ests.filter((e) => e.value != null), above = valid.filter((e) => e.diff > 0).length;
+  const note = (e) => e.value == null ? t("r_" + e.reason) : e.id === "dcf" ? t("n_dcf")(pct(e.growth * 100, false)) : e.id === "analyst" ? t("n_analyst")(e.count) : t("n_graham");
+  // testi del dizionario e numeri formattati; i campi di Yahoo (settore) vanno solo in textContent
+  box.innerHTML = `
+    <h3 id="valTitle">${t("valTitle")}</h3>
+    <div class="dmeta" id="valSector"></div>
+    <div class="stats" style="margin-top:10px">${metrics.map(([k, v]) => `<div class="stat"><div class="k">${t("m_" + k)}</div><div class="v">${v}</div></div>`).join("")}</div>
+    <h4>${t("estimatesTitle")}</h4>
+    <div class="vlist">${ests.map((e) => `
+      <div class="vrow">
+        <div><div class="k">${t("e_" + e.id)}</div><div class="n">${note(e)}</div></div>
+        <div><div class="v">${e.value == null ? "—" : fmt(e.value, cur)}</div>${e.diff == null ? "" : `<div class="d">${pct(e.diff * 100)} ${t("vsPrice")}</div>`}</div>
+      </div>`).join("")}
+    </div>
+    ${valid.length ? `<p class="dmeta" style="margin:10px 0 0">${t("estSummary")(above, valid.length)}</p>` : ""}
+    <details><summary>${t("howToRead")}</summary><dl>${metrics.map(([k]) => `<dt>${t("m_" + k)}</dt><dd>${t("d_" + k)}</dd>`).join("")}</dl></details>
+    <p class="disc">${t("disclaimer")}</p>`;
+  $("valSector").textContent = [f.sector, f.industry].filter(Boolean).join(" · ");
+  box.hidden = false;
 }
 
 function renderStats(d, c, r, base){

@@ -37,6 +37,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;pa
 h1{font-size:28px;margin:0;letter-spacing:-.02em}
 .sub{color:var(--muted);font-size:12px}
 .hbtns{display:flex;gap:8px}
+.iconbtn.lang{font-size:12px;font-weight:700;letter-spacing:.03em}
 .iconbtn{border:0;background:var(--chip);color:var(--text);width:38px;height:38px;border-radius:50%;
   font-size:20px;line-height:38px;cursor:pointer;padding:0}
 .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
@@ -109,17 +110,18 @@ svg.chart .ax{fill:var(--muted);font-size:11px;font-variant-numeric:tabular-nums
       <div class="sub" id="updated">—</div>
     </div>
     <div class="hbtns">
+      <button class="iconbtn lang" id="langBtn"></button>
       <button class="iconbtn" id="themeBtn"></button>
-      <button class="iconbtn" id="addBtn" aria-label="Aggiungi titolo">+</button>
+      <button class="iconbtn" id="addBtn" data-i18n-aria="add">+</button>
     </div>
   </header>
 
   <div class="controls">
     <div class="seg" id="rangeSeg">
-      <button data-v="1d">1G</button><button data-v="1w">1S</button><button data-v="1m">1M</button><button data-v="1y">1A</button>
+      <button data-v="1d" data-i18n="r1d"></button><button data-v="1w" data-i18n="r1w"></button><button data-v="1m" data-i18n="r1m"></button><button data-v="1y" data-i18n="r1y"></button>
     </div>
     <div class="seg" id="curSeg">
-      <button data-v="orig">Orig.</button><button data-v="EUR">€</button><button data-v="USD">$</button>
+      <button data-v="orig" data-i18n="orig"></button><button data-v="EUR">€</button><button data-v="USD">$</button>
     </div>
   </div>
 
@@ -135,19 +137,19 @@ svg.chart .ax{fill:var(--muted);font-size:11px;font-variant-numeric:tabular-nums
         <p class="dname" id="dName"></p>
         <div class="dmeta" id="dMeta"></div>
       </div>
-      <button class="iconbtn" data-close aria-label="Chiudi">×</button>
+      <button class="iconbtn" data-close data-i18n-aria="close">×</button>
     </div>
     <div class="dprice" id="dPrice"></div>
     <div class="dchg" id="dChg"></div>
     <div class="seg" id="dRangeSeg" style="margin-top:12px">
-      <button data-v="1d">1G</button><button data-v="1w">1S</button><button data-v="1m">1M</button><button data-v="1y">1A</button>
+      <button data-v="1d" data-i18n="r1d"></button><button data-v="1w" data-i18n="r1w"></button><button data-v="1m" data-i18n="r1m"></button><button data-v="1y" data-i18n="r1y"></button>
     </div>
     <div class="chartbox">
       <div class="ctip" id="tip"></div>
       <svg class="chart" id="bigChart"></svg>
     </div>
     <div class="stats" id="stats"></div>
-    <button class="danger" id="removeBtn">Rimuovi dalla lista</button>
+    <button class="danger" id="removeBtn" data-i18n="remove"></button>
   </div>
 </div>
 
@@ -156,20 +158,20 @@ svg.chart .ax{fill:var(--muted);font-size:11px;font-variant-numeric:tabular-nums
   <div class="panel">
     <div class="grab"></div>
     <div class="dhead" style="margin-bottom:10px">
-      <p class="dname">Aggiungi titolo</p>
-      <button class="iconbtn" data-close aria-label="Chiudi">×</button>
+      <p class="dname" data-i18n="add"></p>
+      <button class="iconbtn" data-close data-i18n-aria="close">×</button>
     </div>
-    <input class="search" id="q" placeholder="Nome o ticker (es. Nvidia, ENEL.MI, ^IXIC)" autocomplete="off" autocapitalize="off">
+    <input class="search" id="q" data-i18n-ph="searchPh" autocomplete="off" autocapitalize="off">
     <div id="results"></div>
-    <div class="hint">Puoi anche scrivere direttamente un ticker Yahoo Finance e premere Invio.</div>
+    <div class="hint" data-i18n="searchHint"></div>
   </div>
 </div>
 
-<div class="install" id="install" role="dialog" aria-label="Installa l'app">
+<div class="install" id="install" role="dialog" data-i18n-aria="installTitle">
   <img src="/icon-192.png" alt="">
-  <div class="t"><b>Installa Borsa</b><span id="installMsg"></span></div>
-  <button class="go" id="installGo">Installa</button>
-  <button class="no" id="installNo">Non ora</button>
+  <div class="t"><b data-i18n="installTitle"></b><span id="installMsg"></span></div>
+  <button class="go" id="installGo" data-i18n="install"></button>
+  <button class="no" id="installNo" data-i18n="notNow"></button>
 </div>
 
 <script>
@@ -193,19 +195,72 @@ const fx = {};      // "USDEUR" -> rate
 
 const $ = (id) => document.getElementById(id);
 
+// ---------- lingua ----------
+const I18N = {
+  it: {
+    r1d: "1G", r1w: "1S", r1m: "1M", r1y: "1A", orig: "Orig.", add: "Aggiungi titolo", close: "Chiudi",
+    remove: "Rimuovi dalla lista", searchPh: "Nome o ticker (es. Nvidia, ENEL.MI, ^IXIC)",
+    searchHint: "Puoi anche scrivere direttamente un ticker Yahoo Finance e premere Invio.",
+    installTitle: "Installa Borsa", install: "Installa", notNow: "Non ora",
+    installIos: "Tocca Condividi (□↑), poi “Aggiungi alla schermata Home”.",
+    installAndroid: "Aprila dalla schermata Home, a tutto schermo.",
+    themeAuto: "Tema: automatico", themeDark: "Tema: scuro", themeLight: "Tema: chiaro", lang: "Lingua: italiano",
+    noData: "Dati non disponibili", unavailable: "dati non disponibili", loadErr: "Impossibile caricare i dati",
+    empty: "Nessun titolo. Tocca + per aggiungerne uno.", updated: "Aggiornato alle ",
+    prevClose: "Chiusura prec.", periodStart: "Inizio periodo", high: "Massimo periodo", low: "Minimo periodo",
+    rangePct: "Escursione", lastPrice: "Ultimo prezzo", noResults: "Nessun risultato.", searchErr: "Errore nella ricerca.",
+    points: "punti", chg1d: "oggi", chg1w: "1 settimana", chg1m: "1 mese", chg1y: "1 anno",
+  },
+  en: {
+    r1d: "1D", r1w: "1W", r1m: "1M", r1y: "1Y", orig: "Orig.", add: "Add symbol", close: "Close",
+    remove: "Remove from list", searchPh: "Name or ticker (e.g. Nvidia, ENEL.MI, ^IXIC)",
+    searchHint: "You can also type a Yahoo Finance ticker directly and press Enter.",
+    installTitle: "Install Borsa", install: "Install", notNow: "Not now",
+    installIos: "Tap Share (□↑), then “Add to Home Screen”.",
+    installAndroid: "Open it from your Home Screen, full screen.",
+    themeAuto: "Theme: automatic", themeDark: "Theme: dark", themeLight: "Theme: light", lang: "Language: English",
+    noData: "No data available", unavailable: "data unavailable", loadErr: "Couldn't load data",
+    empty: "No symbols yet. Tap + to add one.", updated: "Updated at ",
+    prevClose: "Prev. close", periodStart: "Period start", high: "Period high", low: "Period low",
+    rangePct: "Range", lastPrice: "Last price", noResults: "No results.", searchErr: "Search error.",
+    points: "points", chg1d: "today", chg1w: "1 week", chg1m: "1 month", chg1y: "1 year",
+  },
+};
+const LANGS = Object.keys(I18N);
+let lang = load("borsa.lang", null);
+if (!I18N[lang]) lang = LANGS.find((l) => (navigator.language || "").toLowerCase().startsWith(l)) || "en";
+let LOC = "it-IT";
+const t = (k) => I18N[lang][k] ?? I18N.it[k] ?? k;
+function applyLang(){
+  // formato di date e numeri: quello del browser se è della stessa lingua (es. en-GB), altrimenti il default
+  LOC = (navigator.language || "").toLowerCase().startsWith(lang) ? navigator.language : { it: "it-IT", en: "en-US" }[lang];
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach((e) => e.textContent = t(e.dataset.i18n));
+  document.querySelectorAll("[data-i18n-aria]").forEach((e) => e.setAttribute("aria-label", t(e.dataset.i18nAria)));
+  document.querySelectorAll("[data-i18n-ph]").forEach((e) => e.placeholder = t(e.dataset.i18nPh));
+  $("langBtn").textContent = lang.toUpperCase();
+  $("langBtn").title = t("lang"); $("langBtn").setAttribute("aria-label", t("lang"));
+}
+applyLang();
+
 // ---------- tema ----------
-const THEMES = { auto: ["◐", "Tema: automatico"], dark: ["☾", "Tema: scuro"], light: ["☀", "Tema: chiaro"] };
+const THEMES = { auto: ["◐", "themeAuto"], dark: ["☾", "themeDark"], light: ["☀", "themeLight"] };
 function applyTheme(){
   if (theme === "auto") delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = theme;
   $("themeBtn").textContent = THEMES[theme][0];
-  $("themeBtn").title = $("themeBtn").ariaLabel = THEMES[theme][1];
+  $("themeBtn").title = $("themeBtn").ariaLabel = t(THEMES[theme][1]);
 }
 $("themeBtn").onclick = () => {
   theme = { auto: "dark", dark: "light", light: "auto" }[theme] || "auto";
   save("borsa.theme", theme); applyTheme();
 };
 applyTheme();
+$("langBtn").onclick = () => {
+  lang = LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length];
+  save("borsa.lang", lang); applyLang(); applyTheme(); renderList();
+  if ($("detail").classList.contains("open")) renderDetail();
+};
 
 async function getChart(symbol, r){
   const key = symbol + "|" + r;
@@ -249,8 +304,8 @@ async function conv(d){
 function fmt(v, c){
   if (v == null || isNaN(v)) return "—";
   const dec = Math.abs(v) < 10 ? 3 : 2;
-  if (!c) return v.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  try { return v.toLocaleString("it-IT", { style: "currency", currency: c, minimumFractionDigits: dec, maximumFractionDigits: dec }); }
+  if (!c) return v.toLocaleString(LOC, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  try { return v.toLocaleString(LOC, { style: "currency", currency: c, minimumFractionDigits: dec, maximumFractionDigits: dec }); }
   catch(e){ return v.toFixed(dec) + " " + c; }
 }
 
@@ -262,10 +317,13 @@ function change(d, r){
   return (d.price - base) / base * 100;
 }
 
+// percentuale con segno, separatore decimale della lingua
+function pct(v, signed = true){ return (signed && v >= 0 ? "+" : "") + v.toLocaleString(LOC, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%"; }
+
 function pillHtml(p){
   if (p == null) return '<span class="pill flat">—</span>';
   const cls = p > 0.004 ? "up" : p < -0.004 ? "down" : "flat";
-  return `<span class="pill ${cls}">${p >= 0 ? "+" : ""}${p.toFixed(2)}%</span>`;
+  return `<span class="pill ${cls}">${pct(p)}</span>`;
 }
 
 function colorFor(p){ return p == null ? "var(--muted)" : p >= 0 ? "var(--up)" : "var(--down)"; }
@@ -286,15 +344,15 @@ function xKey(t, r){
 }
 function xLabel(t, r){
   const d = new Date(t);
-  if (r === "1d") return d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
-  if (r === "1w") return d.toLocaleDateString("it-IT", { weekday: "short", day: "numeric" });
-  if (r === "1y") return d.toLocaleDateString("it-IT", { month: "short" }) + (d.getMonth() === 0 ? " " + d.getFullYear() : "");
-  return d.toLocaleDateString("it-IT", { day: "numeric", month: "short" });
+  if (r === "1d") return d.toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" });
+  if (r === "1w") return d.toLocaleDateString(LOC, { weekday: "short", day: "numeric" });
+  if (r === "1y") return d.toLocaleDateString(LOC, { month: "short" }) + (d.getMonth() === 0 ? " " + d.getFullYear() : "");
+  return d.toLocaleDateString(LOC, { day: "numeric", month: "short" });
 }
 function fmtFull(t, r){
   const d = new Date(t);
-  const day = d.toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short", year: r === "1y" ? "numeric" : undefined });
-  return r === "1d" || r === "1w" ? day + ", " + d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : day;
+  const day = d.toLocaleDateString(LOC, { weekday: "short", day: "numeric", month: "short", year: r === "1y" ? "numeric" : undefined });
+  return r === "1d" || r === "1w" ? day + ", " + d.toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" }) : day;
 }
 
 let gradId = 0;
@@ -308,7 +366,7 @@ function drawChart(svg){
   const padL = 4, padR = 64, padT = 8, padB = 22;
   const pts = d.points.map((x) => [x[0], x[1] * c.f]);
   const n = pts.length;
-  if (n < 2){ svg.innerHTML = `<text class="ax" x="${W / 2}" y="${H / 2}" text-anchor="middle">Dati non disponibili</text>`; svg._st = null; return; }
+  if (n < 2){ svg.innerHTML = `<text class="ax" x="${W / 2}" y="${H / 2}" text-anchor="middle">${t("noData")}</text>`; svg._st = null; return; }
 
   let min = Infinity, max = -Infinity;
   for (const q of pts){ if (q[1] < min) min = q[1]; if (q[1] > max) max = q[1]; }
@@ -327,7 +385,7 @@ function drawChart(svg){
   for (let v = Math.ceil(min / step) * step; v <= max; v += step){
     const y = Y(v).toFixed(1);
     grid += `<line x1="${padL}" x2="${W - padR}" y1="${y}" y2="${y}" stroke="var(--grid)" stroke-width="1"/>` +
-      `<text class="ax" x="${W - padR + 8}" y="${+y + 4}">${v.toLocaleString("it-IT", { minimumFractionDigits: dec, maximumFractionDigits: dec })}</text>`;
+      `<text class="ax" x="${W - padR + 8}" y="${+y + 4}">${v.toLocaleString(LOC, { minimumFractionDigits: dec, maximumFractionDigits: dec })}</text>`;
   }
 
   let ticks = [];
@@ -378,7 +436,7 @@ function scrub(ev){
   cd.setAttribute("cx", x); cd.setAttribute("cy", st.Y(q[1])); cd.setAttribute("visibility", "visible");
   const base = baseOf(s.d, s.r), b = base ? base * s.c.f : st.pts[0][1];
   const pc = (q[1] - b) / b * 100;
-  if (svg._tip) svg._tip.textContent = fmtFull(q[0], s.r) + " · " + fmt(q[1], s.c.cur) + " · " + (pc >= 0 ? "+" : "") + pc.toFixed(2) + "%";
+  if (svg._tip) svg._tip.textContent = fmtFull(q[0], s.r) + " · " + fmt(q[1], s.c.cur) + " · " + pct(pc);
   if (ev.touches && ev.cancelable) ev.preventDefault();
 }
 function endScrub(ev){
@@ -404,7 +462,7 @@ function setupChart(svg, tip, touch){
 async function renderList(){
   const list = $("list");
   if (!watch.length){
-    list.innerHTML = '<div class="empty">Nessun titolo. Tocca + per aggiungerne uno.</div>';
+    list.innerHTML = '<div class="empty"></div>'; list.firstChild.textContent = t("empty");
     return;
   }
   list.querySelectorAll("svg").forEach((s) => ro.unobserve(s));
@@ -441,10 +499,11 @@ async function renderList(){
     } catch(e){
       el.querySelector(".px").textContent = "n/d";
       el.querySelector(".chg").innerHTML = '<span class="err"></span>';
-      el.querySelector(".err").textContent = e.message;
+      el.querySelector(".err").textContent = t("unavailable");
+      el.querySelector(".err").title = e.message;
     }
   }));
-  $("updated").textContent = "Aggiornato alle " + new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+  $("updated").textContent = t("updated") + new Date().toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" });
 }
 
 function setSeg(segId, val){
@@ -475,12 +534,11 @@ async function renderDetail(){
     const c = await conv(d);
     const p = change(d, r);
     const base = baseOf(d, r);
-    $("dMeta").textContent = [sym, d.name !== sym ? d.name : "", d.exchange, isIndex(d) ? "punti" : (normCur(d).cur + (c.cur && c.cur !== normCur(d).cur ? " → " + c.cur : ""))].filter(Boolean).join(" · ");
+    $("dMeta").textContent = [sym, d.name !== sym ? d.name : "", d.exchange, isIndex(d) ? t("points") : (normCur(d).cur + (c.cur && c.cur !== normCur(d).cur ? " → " + c.cur : ""))].filter(Boolean).join(" · ");
     $("dPrice").textContent = fmt(d.price * c.f, c.cur);
     const abs = base ? (d.price - base) * c.f : null;
-    const labels = { "1d": "oggi", "1w": "1 settimana", "1m": "1 mese", "1y": "1 anno" };
     $("dChg").innerHTML = p == null ? "" :
-      `<span style="color:${colorFor(p)}">${abs >= 0 ? "+" : ""}${fmt(abs, c.cur)} (${p >= 0 ? "+" : ""}${p.toFixed(2)}%)</span> <span class="dmeta">${labels[r]}</span>`;
+      `<span style="color:${colorFor(p)}">${abs >= 0 ? "+" : ""}${fmt(abs, c.cur)} (${pct(p)})</span> <span class="dmeta">${t("chg" + r)}</span>`;
     const svg = $("bigChart");
     svg._data = { d, c, p, r };
     drawChart(svg);
@@ -488,7 +546,7 @@ async function renderDetail(){
   } catch(e){
     $("dPrice").textContent = "n/d";
     $("dChg").innerHTML = '<span class="err"></span>';
-    $("dChg").querySelector(".err").textContent = "Impossibile caricare i dati: " + e.message;
+    $("dChg").querySelector(".err").textContent = t("loadErr"); $("dChg").querySelector(".err").title = e.message;
   }
 }
 
@@ -496,11 +554,11 @@ function renderStats(d, c, r, base){
   const vals = d.points.map((x) => x[1] * c.f);
   const hi = vals.length ? Math.max(...vals) : null, lo = vals.length ? Math.min(...vals) : null;
   const items = [
-    [r === "1d" ? "Chiusura prec." : "Inizio periodo", base != null ? fmt(base * c.f, c.cur) : "—"],
-    ["Massimo periodo", fmt(hi, c.cur)],
-    ["Minimo periodo", fmt(lo, c.cur)],
-    ["Escursione", hi != null && lo ? ((hi - lo) / lo * 100).toFixed(2) + "%" : "—"],
-    ["Ultimo prezzo", d.marketTime ? fmtFull(d.marketTime, "1d") : "—"],
+    [t(r === "1d" ? "prevClose" : "periodStart"), base != null ? fmt(base * c.f, c.cur) : "—"],
+    [t("high"), fmt(hi, c.cur)],
+    [t("low"), fmt(lo, c.cur)],
+    [t("rangePct"), hi != null && lo ? pct((hi - lo) / lo * 100, false) : "—"],
+    [t("lastPrice"), d.marketTime ? fmtFull(d.marketTime, "1d") : "—"],
   ];
   $("stats").innerHTML = items.map(() => '<div class="stat"><div class="k"></div><div class="v"></div></div>').join("");
   $("stats").querySelectorAll(".stat").forEach((el, i) => {
@@ -532,7 +590,7 @@ async function doSearch(v){
     if ($("q").value.trim() !== v) return;
     const box = $("results");
     box.innerHTML = "";
-    if (!d.results.length){ box.innerHTML = '<div class="hint">Nessun risultato.</div>'; return; }
+    if (!d.results.length){ box.innerHTML = '<div class="hint"></div>'; box.firstChild.textContent = t("noResults"); return; }
     d.results.forEach((x) => {
       const el = document.createElement("div");
       el.className = "res";
@@ -543,7 +601,7 @@ async function doSearch(v){
       el.onclick = () => addSymbol(x.symbol, shortName(x.name));
       box.appendChild(el);
     });
-  } catch(e){ $("results").innerHTML = '<div class="hint">Errore nella ricerca.</div>'; }
+  } catch(e){ $("results").innerHTML = '<div class="hint"></div>'; $("results").firstChild.textContent = t("searchErr"); }
 }
 function shortName(n){
   return n.replace(/,?\s+(Inc\.?|Corporation|Corp\.?|Ltd\.?|S\.p\.A\.?|SpA|N\.V\.|AG|SE|plc|Class [A-C])\b.*$/i, "").trim() || n;
@@ -594,7 +652,7 @@ $("dRangeSeg").onclick = (e) => {
   const box = $("install");
   $("installNo").onclick = () => { box.classList.remove("open"); save("borsa.installDismissed", true); };
   if (ios){ // iOS non ha un'API di installazione: si spiega come fare
-    $("installMsg").textContent = "Tocca Condividi (□↑), poi “Aggiungi alla schermata Home”.";
+    $("installMsg").dataset.i18n = "installIos"; applyLang();
     $("installGo").hidden = true;
     box.classList.add("open");
     return;
@@ -602,7 +660,7 @@ $("dRangeSeg").onclick = (e) => {
   // Android/Chrome: il banner appare solo quando il browser rende disponibile il prompt nativo
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();
-    $("installMsg").textContent = "Aprila dalla schermata Home, a tutto schermo.";
+    $("installMsg").dataset.i18n = "installAndroid"; applyLang();
     $("installGo").onclick = async () => { box.classList.remove("open"); e.prompt(); await e.userChoice; };
     box.classList.add("open");
   });

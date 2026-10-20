@@ -6,12 +6,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Borsa">
+<meta name="apple-mobile-web-app-title" content="StocksWatcher">
 <meta name="theme-color" content="#001E2B">
 <link rel="apple-touch-icon" href="/icon-180.png">
 <link rel="icon" href="/icon-192.png">
 <link rel="manifest" href="/manifest.webmanifest">
-<title>Borsa</title>
+<title>StocksWatcher</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Source+Serif+4:opsz,wght@8..60,600&display=swap">
@@ -57,6 +57,7 @@ button{font:inherit;color:inherit}
 .wrap{padding:16px clamp(16px,2.5vw,48px) calc(80px + env(safe-area-inset-bottom))}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0 16px}
 h1{font:600 32px/1.1 "Source Serif 4",Georgia,serif;margin:0;letter-spacing:-.01em}
+@media (max-width:420px){ h1{font-size:26px} }
 .sub{color:var(--muted);font-size:13px;margin-top:4px}
 .hbtns{display:flex;gap:8px}
 .iconbtn{border:1px solid var(--line);background:var(--card);color:var(--text);width:40px;height:40px;border-radius:50%;
@@ -77,7 +78,13 @@ h1{font:600 32px/1.1 "Source Serif 4",Georgia,serif;margin:0;letter-spacing:-.01
   cursor:pointer;min-width:0;transition:border-color .15s}
 .card:hover{border-color:var(--field)}
 .chead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
-.chead{width:100%;border:0;background:transparent;padding:0;text-align:left;cursor:pointer;border-radius:8px}
+.chead{width:100%;border:0;background:transparent;padding:0;text-align:left;cursor:pointer;border-radius:8px;flex:1;min-width:0}
+.crow{display:flex;gap:4px;align-items:center}
+.grip{flex:none;width:28px;height:40px;margin-left:-8px;border:0;background:transparent;color:var(--muted);font-size:18px;
+  border-radius:6px;cursor:grab;touch-action:none}
+.grip:hover{background:var(--chip);color:var(--text)}
+.card.dragging{outline:2px dashed var(--focus);outline-offset:2px;opacity:.9}
+.card.dragging .grip{cursor:grabbing}
 .chead > span:first-child{min-width:0}
 .nm,.sym,.px,.chg,.res .a,.res .dmeta{display:block}
 .nm{font-weight:600;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -128,6 +135,13 @@ svg.chart .ax{fill:var(--muted);font-size:12px;font-variant-numeric:tabular-nums
 .dchg{font-weight:600;font-variant-numeric:tabular-nums}
 .chartbox{background:var(--card);border:1px solid var(--line);border-radius:16px;margin:14px 0;padding:10px 14px 8px;box-shadow:var(--shadow)}
 .chartbox .ctip{margin:2px 0 4px}
+.ctop{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.zoom{display:inline-flex;gap:4px}
+.zoom button{border:1px solid var(--line);background:var(--card);color:var(--text);min-width:32px;height:32px;border-radius:6px;
+  font-size:13px;font-weight:600;cursor:pointer;padding:0 10px}
+.zoom button:hover:not(:disabled){background:var(--chip)}
+.zoom button:disabled{color:var(--muted);cursor:default;opacity:.6}
+#bigChart.zoomed{cursor:grab}
 #bigChart{height:clamp(260px,52vh,640px);touch-action:none}
 .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:8px}
 .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
@@ -151,7 +165,7 @@ svg.chart .ax{fill:var(--muted);font-size:12px;font-variant-numeric:tabular-nums
 <div class="wrap" id="app">
   <header>
     <div>
-      <h1>Borsa</h1>
+      <h1>StocksWatcher</h1>
       <div class="sub" id="updated">—</div>
     </div>
     <div class="hbtns">
@@ -171,6 +185,8 @@ svg.chart .ax{fill:var(--muted);font-size:12px;font-variant-numeric:tabular-nums
   </div>
 
   <main class="list" id="list"></main>
+  <span class="sr" id="gripHint" data-i18n="reorderHint"></span>
+  <div class="sr" id="announce" aria-live="assertive"></div>
 </div>
 
 <!-- dettaglio -->
@@ -189,7 +205,14 @@ svg.chart .ax{fill:var(--muted);font-size:12px;font-variant-numeric:tabular-nums
       <button data-v="1d" data-i18n="r1d"></button><button data-v="1w" data-i18n="r1w"></button><button data-v="1m" data-i18n="r1m"></button><button data-v="1y" data-i18n="r1y"></button>
     </div>
     <div class="chartbox">
-      <div class="ctip" id="tip"></div>
+      <div class="ctop">
+        <div class="ctip" id="tip"></div>
+        <div class="zoom" role="group" data-i18n-aria="zoomLabel">
+          <button type="button" id="zoomIn" data-i18n-aria="zoomIn"><span aria-hidden="true">+</span></button>
+          <button type="button" id="zoomOut" data-i18n-aria="zoomOut"><span aria-hidden="true">−</span></button>
+          <button type="button" id="zoomReset" data-i18n="zoomReset"></button>
+        </div>
+      </div>
       <svg class="chart" id="bigChart"></svg>
     </div>
     <div class="stats" id="stats"></div>
@@ -234,7 +257,7 @@ const I18N = {
     themeAuto: "Tema: automatico", themeDark: "Tema: scuro", themeLight: "Tema: chiaro", lang: "Lingua: italiano",
     noData: "Dati non disponibili", unavailable: "dati non disponibili", loadErr: "Impossibile caricare i dati",
     updated: "Aggiornato alle ", details: "Dettagli ›",
-    welcomeTitle: "Benvenuto in Borsa",
+    welcomeTitle: "Benvenuto in StocksWatcher",
     welcomeIntro: "Segui azioni, ETF, indici e cambi di tutto il mondo in un'unica lista.",
     step1: "Premi + e cerca un titolo per nome o ticker: Nvidia, ENEL.MI, ^GSPC.",
     step2: "Scegli il periodo (1G, 1S, 1M, 1A) e la valuta in cui vedere i prezzi.",
@@ -242,6 +265,8 @@ const I18N = {
     addFirst: "Aggiungi il primo titolo", welcomeNote: "La lista resta salvata su questo dispositivo.",
     prevClose: "Chiusura prec.", periodStart: "Inizio periodo", high: "Massimo periodo", low: "Minimo periodo",
     periodLabel: "Periodo", curLabel: "Valuta",
+    reorder: "Sposta", reorderHint: "Trascina, oppure usa le frecce su e giù per cambiare posizione.", position: "posizione", of: "di",
+    zoomLabel: "Zoom", zoomIn: "Ingrandisci", zoomOut: "Riduci", zoomReset: "Reimposta",
     rangePct: "Escursione", lastPrice: "Ultimo prezzo", noResults: "Nessun risultato.", searchErr: "Errore nella ricerca.",
     points: "punti", chg1d: "oggi", chg1w: "1 settimana", chg1m: "1 mese", chg1y: "1 anno",
   },
@@ -252,7 +277,7 @@ const I18N = {
     themeAuto: "Theme: automatic", themeDark: "Theme: dark", themeLight: "Theme: light", lang: "Language: English",
     noData: "No data available", unavailable: "data unavailable", loadErr: "Couldn't load data",
     updated: "Updated at ", details: "Details ›",
-    welcomeTitle: "Welcome to Borsa",
+    welcomeTitle: "Welcome to StocksWatcher",
     welcomeIntro: "Follow stocks, ETFs, indices and currencies from around the world in one list.",
     step1: "Press + and search by name or ticker: Nvidia, ENEL.MI, ^GSPC.",
     step2: "Pick the period (1D, 1W, 1M, 1Y) and the currency for prices.",
@@ -260,6 +285,8 @@ const I18N = {
     addFirst: "Add your first symbol", welcomeNote: "Your list is saved on this device.",
     prevClose: "Prev. close", periodStart: "Period start", high: "Period high", low: "Period low",
     periodLabel: "Period", curLabel: "Currency",
+    reorder: "Move", reorderHint: "Drag, or use the up and down arrow keys to change position.", position: "position", of: "of",
+    zoomLabel: "Zoom", zoomIn: "Zoom in", zoomOut: "Zoom out", zoomReset: "Reset",
     rangePct: "Range", lastPrice: "Last price", noResults: "No results.", searchErr: "Search error.",
     points: "points", chg1d: "today", chg1w: "1 week", chg1m: "1 month", chg1y: "1 year",
   },
@@ -402,7 +429,8 @@ function drawChart(svg){
   if (!W || !H) return;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   const padL = 4, padR = 64, padT = 8, padB = 22;
-  const pts = d.points.map((x) => [x[0], x[1] * c.f]);
+  let pts = d.points.map((x) => [x[0], x[1] * c.f]);
+  if (svg._view) pts = pts.slice(svg._view[0], svg._view[1] + 1); // zoom: solo la finestra visibile
   const n = pts.length;
   if (n < 2){ svg.innerHTML = `<text class="ax" x="${W / 2}" y="${H / 2}" text-anchor="middle">${t("noData")}</text>`; svg._st = null; return; }
 
@@ -469,6 +497,7 @@ function scrub(ev){
   const svg = ev.currentTarget, st = svg._st, s = svg._data;
   if (!st) return;
   const rect = svg.getBoundingClientRect();
+  if (ev.touches && ev.touches.length > 1) return; // due dita = pinch, non tooltip
   const clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
   const i = Math.max(0, Math.min(st.n - 1, Math.round((clientX - rect.left - st.padL) / st.iw * (st.n - 1))));
   const q = st.pts[i], x = st.X(i);
@@ -499,10 +528,52 @@ function setupChart(svg, tip, touch){
   ro.observe(svg);
 }
 
+// ---------- riordino ----------
+let dragging = null;
+function persistOrder(){
+  watch = [...$("list").querySelectorAll(".card")].map((c) => c._w);
+  save("borsa.watch", watch);
+}
+function setupGrip(el, grip){
+  const name = el._w.label || el._w.symbol;
+  grip.setAttribute("aria-label", t("reorder") + " " + name);
+  grip.onclick = (e) => e.stopPropagation();
+  grip.onkeydown = (e) => {
+    const dir = { ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1 }[e.key];
+    if (!dir) return;
+    e.preventDefault();
+    const sib = dir < 0 ? el.previousElementSibling : el.nextElementSibling;
+    if (!sib) return;
+    el.parentNode.insertBefore(el, dir < 0 ? sib : sib.nextSibling);
+    grip.focus(); // spostare il nodo gli toglie il focus
+    persistOrder();
+    $("announce").textContent = `${name}: ${t("position")} ${watch.indexOf(el._w) + 1} ${t("of")} ${watch.length}`;
+  };
+  grip.onpointerdown = (e) => {
+    e.preventDefault();
+    grip.setPointerCapture(e.pointerId);
+    dragging = el; el.classList.add("dragging");
+  };
+  grip.onpointermove = (e) => {
+    if (dragging !== el) return;
+    if (e.clientY < 80) scrollBy(0, -12); else if (e.clientY > innerHeight - 80) scrollBy(0, 12);
+    const over = document.elementFromPoint(e.clientX, e.clientY)?.closest(".card");
+    if (!over || over === el) return;
+    const cards = [...el.parentNode.children];
+    el.parentNode.insertBefore(el, cards.indexOf(el) < cards.indexOf(over) ? over.nextSibling : over);
+  };
+  grip.onpointerup = grip.onpointercancel = () => {
+    if (dragging !== el) return;
+    dragging = null; el.classList.remove("dragging");
+    persistOrder();
+  };
+}
+
 // ---------- lista ----------
 const isMobile = () => matchMedia("(max-width: 600px)").matches;
 const openCards = new Set(); // card aperte su mobile: solo in memoria, all'avvio sono tutte chiuse
 async function renderList(){
+  if (dragging) return; // non ricostruire la lista durante un trascinamento
   const list = $("list");
   list.querySelectorAll("svg").forEach((s) => ro.unobserve(s));
   if (!watch.length){ // testi statici del dizionario: sicuri in innerHTML
@@ -520,11 +591,14 @@ async function renderList(){
   // scheletro
   list.innerHTML = watch.map((w, i) => `
     <div class="card" data-i="${i}">
+      <div class="crow">
+      <button type="button" class="grip" aria-describedby="gripHint"><span aria-hidden="true">⠿</span></button>
       <button type="button" class="chead">
         <span><span class="nm"></span><span class="sym"></span></span>
         <span class="r"><span class="px">…</span><span class="chg"></span></span>
         <span class="chev" aria-hidden="true">›</span>
       </button>
+      </div>
       <div class="ctip"></div>
       <svg class="chart"></svg>
       <button type="button" class="more">${t("details")}</button>
@@ -539,6 +613,8 @@ async function renderList(){
     // mobile: l'intestazione apre/chiude la card; desktop: apre il dettaglio. Grafico e "Dettagli" aprono il dettaglio
     head.onclick = (e) => { e.stopPropagation(); mobile ? setOpen(!el.classList.contains("open")) : openDetail(w.symbol); };
     el.onclick = () => openDetail(w.symbol);
+    el._w = w;
+    setupGrip(el, el.querySelector(".grip"));
     setupChart(el.querySelector("svg"), el.querySelector(".ctip"), false);
   });
 
@@ -567,6 +643,78 @@ async function renderList(){
 function setSeg(segId, val){
   $(segId).querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === val));
 }
+
+// ---------- zoom del grafico di dettaglio ----------
+const MIN_SPAN = 8; // punti minimi visibili
+// finestra visibile [a, b] (indici dei punti); null = tutto il periodo
+function zoomView(view, n, factor, frac){
+  const [a, b] = view || [0, n - 1], span = b - a;
+  const ns = Math.round(Math.min(n - 1, Math.max(MIN_SPAN, span * factor)));
+  if (ns >= n - 1) return null;
+  const s = Math.round(Math.min(n - 1 - ns, Math.max(0, a + frac * (span - ns)))); // il punto sotto il cursore resta fermo
+  return [s, s + ns];
+}
+function panView(view, n, shift){
+  if (!view) return null;
+  const ns = view[1] - view[0], s = Math.round(Math.min(n - 1 - ns, Math.max(0, view[0] + shift)));
+  return [s, s + ns];
+}
+if (location.hostname === "localhost"){ // autoverifica in sviluppo
+  console.assert(zoomView(null, 101, 0.5, 0.5) + "" === "25,75", "zoom al centro");
+  console.assert(zoomView(null, 101, 0.5, 0) + "" === "0,50", "zoom a sinistra");
+  console.assert(zoomView([25, 75], 101, 4, 0.5) === null, "zoom out oltre il periodo");
+  console.assert(zoomView([40, 48], 101, 0.1, 0.5) + "" === "40,48", "limite MIN_SPAN");
+  console.assert(panView([0, 50], 101, 80) + "" === "50,100", "pan limitato a destra");
+}
+const big = $("bigChart");
+const pointsN = () => big._data ? big._data.d.points.length : 0;
+const spanOf = (v) => v ? v[1] - v[0] : pointsN() - 1;
+function fracAt(clientX){
+  const st = big._st, r = big.getBoundingClientRect();
+  return st ? Math.max(0, Math.min(1, (clientX - r.left - st.padL) / st.iw)) : 0.5;
+}
+function setView(svg, v){
+  svg._view = v;
+  drawChart(svg);
+  svg.classList.toggle("zoomed", !!v);
+  $("zoomIn").disabled = spanOf(v) <= MIN_SPAN;
+  $("zoomOut").disabled = $("zoomReset").disabled = !v;
+}
+$("zoomIn").onclick = () => setView(big, zoomView(big._view, pointsN(), 0.5, 0.5));
+$("zoomOut").onclick = () => setView(big, zoomView(big._view, pointsN(), 2, 0.5));
+$("zoomReset").onclick = () => setView(big, null);
+big.addEventListener("wheel", (e) => {
+  if (!big._st) return;
+  e.preventDefault();
+  if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return setView(big, panView(big._view, pointsN(), e.deltaX / big._st.iw * spanOf(big._view)));
+  // ctrlKey = pinch sul trackpad: delta piccoli, serve più sensibilità
+  setView(big, zoomView(big._view, pointsN(), Math.exp(e.deltaY * (e.ctrlKey ? 0.01 : 0.002)), fracAt(e.clientX)));
+}, { passive: false });
+let panStart = null;
+big.addEventListener("pointerdown", (e) => {
+  if (e.pointerType !== "mouse" || !big._view) return;
+  panStart = { x: e.clientX, v: big._view };
+  big.setPointerCapture(e.pointerId);
+});
+big.addEventListener("pointermove", (e) => {
+  if (panStart) setView(big, panView(panStart.v, pointsN(), -(e.clientX - panStart.x) / big._st.iw * spanOf(panStart.v)));
+});
+big.addEventListener("pointerup", () => panStart = null);
+let pinch = null;
+const touchGeo = (e) => { const [p, q] = e.touches; return { d: Math.hypot(p.clientX - q.clientX, p.clientY - q.clientY), m: (p.clientX + q.clientX) / 2 }; };
+big.addEventListener("touchstart", (e) => {
+  if (e.touches.length !== 2) return;
+  const g = touchGeo(e);
+  pinch = { ...g, v: big._view, f: fracAt(g.m) };
+}, { passive: true });
+big.addEventListener("touchmove", (e) => {
+  if (!pinch || e.touches.length !== 2 || !big._st) return;
+  e.preventDefault();
+  const g = touchGeo(e), n = pointsN();
+  const v = zoomView(pinch.v, n, pinch.d / g.d, pinch.f);
+  setView(big, panView(v, n, -(g.m - pinch.m) / big._st.iw * spanOf(v)));
+}, { passive: false });
+big.addEventListener("touchend", (e) => { if (e.touches.length < 2) pinch = null; });
 
 // ---------- finestre ----------
 let lastFocus = null;
@@ -613,8 +761,9 @@ async function renderDetail(){
     $("dChg").innerHTML = p == null ? "" :
       `<span style="color:${colorFor(p)}">${abs >= 0 ? "+" : ""}${fmt(abs, c.cur)} (${pct(p)})</span> <span class="dmeta">${t("chg" + r)}</span>`;
     const svg = $("bigChart");
+    const fresh = !svg._data || svg._data.d !== d;
     svg._data = { d, c, p, r };
-    drawChart(svg);
+    fresh ? setView(svg, null) : drawChart(svg); // dati nuovi: zoom azzerato
     renderStats(d, c, r, base);
   } catch(e){
     $("dPrice").textContent = "n/d";

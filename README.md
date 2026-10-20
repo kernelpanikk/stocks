@@ -1,4 +1,4 @@
-# Borsa — webapp watchlist
+# StocksWatcher — webapp watchlist
 
 Web app (PWA) per seguire titoli e indici: aggiungi/rimuovi ticker, scegli valuta (originale/EUR/USD), grafico interattivo 1G/1S/1M/1A.
 

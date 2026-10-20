@@ -55,15 +55,17 @@ body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 button{font:inherit;color:inherit}
 .wrap{padding:16px clamp(16px,2.5vw,48px) calc(80px + env(safe-area-inset-bottom))}
-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0 16px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0 16px;flex-wrap:wrap}
 h1{font:600 32px/1.1 "Source Serif 4",Georgia,serif;margin:0;letter-spacing:-.01em}
-@media (max-width:420px){ h1{font-size:26px} }
+@media (max-width:420px){ h1{font-size:24px} }
 .sub{color:var(--muted);font-size:13px;margin-top:4px}
 .hbtns{display:flex;gap:8px}
 .iconbtn{border:1px solid var(--line);background:var(--card);color:var(--text);width:40px;height:40px;border-radius:50%;
   font-size:20px;line-height:1;cursor:pointer;padding:0;display:inline-grid;place-items:center}
 .iconbtn:hover{background:var(--chip)}
 .iconbtn.lang{font-size:12px;font-weight:700;letter-spacing:.04em}
+.iconbtn[aria-pressed="true"]{background:var(--segOn);border-color:var(--segOn);color:var(--segOnText)}
+@media (max-width:420px){ .hbtns{gap:6px} .hbtns .iconbtn{width:36px;height:36px} }
 #addBtn{background:var(--primary);border-color:var(--primary);color:var(--onPrimary)}
 #addBtn:hover{background:var(--primaryHover)}
 .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
@@ -182,6 +184,7 @@ svg.chart .ax{fill:var(--muted);font-size:12px;font-variant-numeric:tabular-nums
       <div class="sub" id="updated">—</div>
     </div>
     <div class="hbtns">
+      <button class="iconbtn lang" id="anaBtn" data-i18n-aria="analysis">P/E</button>
       <button class="iconbtn lang" id="langBtn"></button>
       <button class="iconbtn" id="themeBtn"></button>
       <button class="iconbtn" id="addBtn" data-i18n-aria="add"><span aria-hidden="true">+</span></button>
@@ -278,7 +281,7 @@ const I18N = {
     step3: "Apri una card per il grafico completo con massimi, minimi e variazioni.",
     addFirst: "Aggiungi il primo titolo", welcomeNote: "La lista resta salvata su questo dispositivo.",
     prevClose: "Chiusura prec.", periodStart: "Inizio periodo", high: "Massimo periodo", low: "Minimo periodo",
-    periodLabel: "Periodo", curLabel: "Valuta",
+    periodLabel: "Periodo", curLabel: "Valuta", analysis: "Analisi finanziaria e valutazione",
     valTitle: "Valutazione", estimatesTitle: "Stime di valore", howToRead: "Come leggere questi indicatori", vsPrice: "rispetto al prezzo",
     estSummary: (a, n) => `${a} stime su ${n} sono sopra il prezzo attuale.`,
     disclaimer: "Indicatori calcolati con formule standard sui dati di Yahoo Finance, che possono essere incompleti o in ritardo. Sono strumenti di analisi, non un consiglio d'investimento.",
@@ -318,7 +321,7 @@ const I18N = {
     step3: "Open a card for the full chart with highs, lows and changes.",
     addFirst: "Add your first symbol", welcomeNote: "Your list is saved on this device.",
     prevClose: "Prev. close", periodStart: "Period start", high: "Period high", low: "Period low",
-    periodLabel: "Period", curLabel: "Currency",
+    periodLabel: "Period", curLabel: "Currency", analysis: "Financial analysis and valuation",
     valTitle: "Valuation", estimatesTitle: "Value estimates", howToRead: "How to read these indicators", vsPrice: "versus price",
     estSummary: (a, n) => `${a} of ${n} estimates are above the current price.`,
     disclaimer: "Indicators computed with standard formulas on Yahoo Finance data, which may be incomplete or delayed. They are analysis tools, not investment advice.",
@@ -377,7 +380,7 @@ $("themeBtn").onclick = () => {
 applyTheme();
 $("langBtn").onclick = () => {
   lang = LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length];
-  save("borsa.lang", lang); applyLang(); applyTheme(); renderList();
+  save("borsa.lang", lang); applyLang(); applyTheme(); applyAnalysis(); renderList();
   if ($("detail").classList.contains("open")) renderDetail();
 };
 
@@ -829,8 +832,19 @@ async function renderDetail(){
 
 // ---------- valutazione (solo azioni) ----------
 const fundCache = {};
+let analysis = load("borsa.analysis", true);
+function applyAnalysis(){
+  $("anaBtn").setAttribute("aria-pressed", analysis);
+  $("anaBtn").title = t("analysis");
+}
+applyAnalysis();
+$("anaBtn").onclick = () => {
+  analysis = !analysis; save("borsa.analysis", analysis); applyAnalysis();
+  if ($("detail").classList.contains("open")) analysis ? loadValuation(detailSym) : $("val").hidden = true;
+};
 async function loadValuation(sym){
   const box = $("val");
+  if (!analysis){ box.hidden = true; return; } // disattivata: niente richieste dei dati di bilancio
   try {
     let f = fundCache[sym];
     if (!f || Date.now() - f.t > 3600000){

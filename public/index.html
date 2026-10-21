@@ -149,6 +149,14 @@ svg.chart .ax{fill:var(--muted);font-size:12px;font-variant-numeric:tabular-nums
 .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .stat .k{color:var(--muted);font-size:13px} .stat .v{font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
 .val{margin:20px 0 8px}
+.posbox{margin:20px 0 8px}
+.posbox h3{font:600 22px/1.2 "Source Serif 4",Georgia,serif;margin:0 0 2px}
+.pl{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:4px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:10px}
+.fields label > span{display:block;font-size:13px;font-weight:600;margin-bottom:4px}
+.search[aria-invalid="true"]{border-color:var(--down)}
+.actions{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.card .pos{display:block;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:4px}
 .val h3{font:600 22px/1.2 "Source Serif 4",Georgia,serif;margin:0 0 2px}
 .val h4{font-size:15px;margin:18px 0 8px}
 .vlist{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
@@ -232,6 +240,22 @@ svg.chart .ax{fill:var(--muted);font-size:12px;font-variant-numeric:tabular-nums
       <svg class="chart" id="bigChart"></svg>
     </div>
     <div class="stats" id="stats"></div>
+    <section class="posbox" id="posBox" aria-labelledby="posTitle" hidden>
+      <h3 id="posTitle" data-i18n="posTitle"></h3>
+      <div class="pl" id="posPl"></div>
+      <form id="posForm" novalidate>
+        <div class="fields">
+          <label><span data-i18n="qty"></span><input class="search" id="posQty" inputmode="decimal" autocomplete="off" aria-describedby="posErr"></label>
+          <label><span id="avgLbl"></span><input class="search" id="posAvg" inputmode="decimal" autocomplete="off" aria-describedby="posHint posErr"></label>
+        </div>
+        <div class="hint" id="posHint" data-i18n="posHint"></div>
+        <div class="err" id="posErr" role="alert"></div>
+        <div class="actions">
+          <button type="submit" class="go" data-i18n="savePos"></button>
+          <button type="button" class="danger" id="posClear" data-i18n="clearPos"></button>
+        </div>
+      </form>
+    </section>
     <section class="val" id="val" aria-labelledby="valTitle" hidden></section>
     <button type="button" class="danger" id="removeBtn" data-i18n="remove"></button>
   </div>
@@ -281,6 +305,9 @@ const I18N = {
     step3: "Apri una card per il grafico completo con massimi, minimi e variazioni.",
     addFirst: "Aggiungi il primo titolo", welcomeNote: "La lista resta salvata su questo dispositivo.",
     prevClose: "Chiusura prec.", periodStart: "Inizio periodo", high: "Massimo periodo", low: "Minimo periodo",
+    posTitle: "La tua posizione", qty: "Quantità", avgPrice: "Prezzo medio di acquisto", savePos: "Salva", clearPos: "Rimuovi posizione",
+    posHint: "Prezzo nella valuta di quotazione del titolo. Il risultato non include l'effetto del cambio dall'acquisto.",
+    invalidNum: "Inserisci quantità e prezzo come numeri maggiori di zero.", plLabel: "Guadagno/perdita",
     periodLabel: "Periodo", curLabel: "Valuta", analysis: "Analisi finanziaria e valutazione",
     valTitle: "Valutazione", estimatesTitle: "Stime di valore", howToRead: "Come leggere questi indicatori", vsPrice: "rispetto al prezzo",
     estSummary: (a, n) => `${a} stime su ${n} sono sopra il prezzo attuale.`,
@@ -321,6 +348,9 @@ const I18N = {
     step3: "Open a card for the full chart with highs, lows and changes.",
     addFirst: "Add your first symbol", welcomeNote: "Your list is saved on this device.",
     prevClose: "Prev. close", periodStart: "Period start", high: "Period high", low: "Period low",
+    posTitle: "Your position", qty: "Quantity", avgPrice: "Average purchase price", savePos: "Save", clearPos: "Remove position",
+    posHint: "Price in the stock's quote currency. The result does not include currency changes since purchase.",
+    invalidNum: "Enter quantity and price as numbers greater than zero.", plLabel: "Gain/loss",
     periodLabel: "Period", curLabel: "Currency", analysis: "Financial analysis and valuation",
     valTitle: "Valuation", estimatesTitle: "Value estimates", howToRead: "How to read these indicators", vsPrice: "versus price",
     estSummary: (a, n) => `${a} of ${n} estimates are above the current price.`,
@@ -652,7 +682,7 @@ async function renderList(){
       <button type="button" class="grip" aria-describedby="gripHint"><span aria-hidden="true">⠿</span></button>
       <button type="button" class="chead">
         <span><span class="nm"></span><span class="sym"></span></span>
-        <span class="r"><span class="px">…</span><span class="chg"></span></span>
+        <span class="r"><span class="px">…</span><span class="chg"></span><span class="pos"></span></span>
         <span class="chev" aria-hidden="true">›</span>
       </button>
       </div>
@@ -683,6 +713,12 @@ async function renderList(){
       const p = change(d, range);
       el.querySelector(".px").textContent = fmt(d.price * c.f, c.cur);
       el.querySelector(".chg").innerHTML = pillHtml(p);
+      const pl = plOf(d, w, c);
+      if (pl){
+        const pos = el.querySelector(".pos");
+        pos.style.color = colorFor(pl.pct);
+        pos.innerHTML = `<span class="sr">${t("plLabel")}: </span>${plText(pl, c)}`;
+      }
       el.querySelector(".sym").textContent = w.symbol + (d.exchange ? " · " + d.exchange : "");
       const svg = el.querySelector("svg");
       svg._data = { d, c, p, r: range };
@@ -797,7 +833,7 @@ async function openDetail(symbol){
   const w = watch.find((x) => x.symbol === symbol);
   $("dName").textContent = (w && w.label) || symbol;
   $("dMeta").textContent = symbol;
-  $("dPrice").textContent = "…"; $("dChg").textContent = ""; $("bigChart").innerHTML = ""; $("tip").textContent = ""; $("stats").innerHTML = ""; $("val").hidden = true;
+  $("dPrice").textContent = "…"; $("dChg").textContent = ""; $("bigChart").innerHTML = ""; $("tip").textContent = ""; $("stats").innerHTML = ""; $("val").hidden = true; $("posBox").hidden = true;
   $("bigChart")._data = null;
   openSheet("detail");
   setSeg("dRangeSeg", detailRange);
@@ -822,12 +858,75 @@ async function renderDetail(){
     svg._data = { d, c, p, r };
     fresh ? setView(svg, null) : drawChart(svg); // dati nuovi: zoom azzerato
     renderStats(d, c, r, base);
+    renderPosition(d, c);
     loadValuation(sym);
   } catch(e){
     $("dPrice").textContent = "n/d";
     $("dChg").innerHTML = '<span class="err"></span>';
     $("dChg").querySelector(".err").textContent = t("loadErr"); $("dChg").querySelector(".err").title = e.message;
   }
+}
+
+// ---------- posizione (quantità e prezzo medio, salvati nella watchlist) ----------
+// numero scritto a mano: accetta "1.234,56", "1234.56", "12,5"; un solo tipo di separatore a gruppi di 3 = migliaia
+function parseNum(v){
+  v = String(v).trim().replace(/\s/g, "");
+  const dec = (1.5).toLocaleString(LOC)[1], grp = dec === "," ? "." : ",";
+  const hasC = v.includes(","), hasD = v.includes(".");
+  if (hasC && hasD){ const i = Math.max(v.lastIndexOf(","), v.lastIndexOf(".")); v = v.slice(0, i).replace(/[.,]/g, "") + "." + v.slice(i + 1); }
+  else if (hasC || hasD){
+    const sep = hasC ? "," : ".";
+    v = sep === grp && new RegExp("^\\d{1,3}(\\" + sep + "\\d{3})+$").test(v) ? v.split(sep).join("") : v.replace(sep, ".");
+  }
+  return /^\d*\.?\d+$/.test(v) ? Number(v) : NaN;
+}
+function plOf(d, w, c){
+  if (!(w.qty > 0 && w.avg > 0) || isIndex(d) || d.price == null) return null;
+  return { abs: (d.price - w.avg) * w.qty * c.f, pct: (d.price - w.avg) / w.avg * 100 };
+}
+const plText = (pl, c) => `${pl.abs >= 0 ? "+" : ""}${fmt(pl.abs, c.cur)} · ${pct(pl.pct)}`;
+const numVal = (v) => v == null ? "" : v.toLocaleString(LOC, { maximumFractionDigits: 8 });
+
+function renderPosition(d, c){
+  const box = $("posBox"), w = watch.find((x) => x.symbol === detailSym);
+  if (!w || isIndex(d)){ box.hidden = true; return; } // un indice non si possiede
+  box._ctx = { d, c };
+  $("avgLbl").textContent = `${t("avgPrice")} (${d.currency})`;
+  $("posQty").value = numVal(w.qty); $("posAvg").value = numVal(w.avg);
+  ["posQty", "posAvg"].forEach((id) => $(id).removeAttribute("aria-invalid"));
+  $("posErr").textContent = "";
+  $("posClear").hidden = w.qty == null;
+  const pl = plOf(d, w, c);
+  $("posPl").innerHTML = pl ? `<span class="sr">${t("plLabel")}: </span><span style="color:${colorFor(pl.pct)}">${plText(pl, c)}</span>` : "";
+  box.hidden = false;
+}
+$("posForm").onsubmit = (e) => {
+  e.preventDefault();
+  const w = watch.find((x) => x.symbol === detailSym); if (!w) return;
+  const q = parseNum($("posQty").value), a = parseNum($("posAvg").value);
+  const bad = [["posQty", q], ["posAvg", a]].filter(([, v]) => !(v > 0));
+  ["posQty", "posAvg"].forEach((id) => $(id).setAttribute("aria-invalid", bad.some(([b]) => b === id)));
+  if (bad.length){ $("posErr").textContent = t("invalidNum"); $(bad[0][0]).focus(); return; }
+  w.qty = q; w.avg = a;
+  save("borsa.watch", watch);
+  renderPosition($("posBox")._ctx.d, $("posBox")._ctx.c);
+  renderList();
+};
+$("posClear").onclick = () => {
+  const w = watch.find((x) => x.symbol === detailSym); if (!w) return;
+  delete w.qty; delete w.avg;
+  save("borsa.watch", watch);
+  renderPosition($("posBox")._ctx.d, $("posBox")._ctx.c);
+  renderList();
+  $("posQty").focus();
+};
+if (location.hostname === "localhost"){ // autoverifica in sviluppo (LOC può essere it o en)
+  const it = LOC; LOC = "it-IT";
+  console.assert(parseNum("1.234,56") === 1234.56 && parseNum("1.000") === 1000 && parseNum("12,5") === 12.5 && parseNum("12.5") === 12.5, "parseNum it");
+  LOC = "en-US";
+  console.assert(parseNum("1,234.56") === 1234.56 && parseNum("1,000") === 1000 && parseNum("12.5") === 12.5 && parseNum("12,5") === 12.5, "parseNum en");
+  console.assert(isNaN(parseNum("abc")) && isNaN(parseNum("")) && isNaN(parseNum("-3")), "parseNum non validi");
+  LOC = it;
 }
 
 // ---------- valutazione (solo azioni) ----------

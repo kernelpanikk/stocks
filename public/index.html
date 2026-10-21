@@ -155,6 +155,7 @@ svg.chart .ax{fill:var(--muted);font-size:12px;font-variant-numeric:tabular-nums
 .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:10px}
 .fields label > span{display:block;font-size:13px;font-weight:600;margin-bottom:4px}
 .search[aria-invalid="true"]{border-color:var(--down)}
+.fields .avgrow{display:flex;gap:6px} .avgrow input{flex:1;min-width:0} .avgrow select{width:auto;flex:none;padding-right:8px}
 .actions{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:12px}
 .card .pos{display:block;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:4px}
 .val h3{font:600 22px/1.2 "Source Serif 4",Georgia,serif;margin:0 0 2px}
@@ -246,7 +247,7 @@ svg.chart .ax{fill:var(--muted);font-size:12px;font-variant-numeric:tabular-nums
       <form id="posForm" novalidate>
         <div class="fields">
           <label><span data-i18n="qty"></span><input class="search" id="posQty" inputmode="decimal" autocomplete="off" aria-describedby="posErr"></label>
-          <label><span id="avgLbl"></span><input class="search" id="posAvg" inputmode="decimal" autocomplete="off" aria-describedby="posHint posErr"></label>
+          <label><span data-i18n="avgPrice"></span><span class="avgrow"><input class="search" id="posAvg" inputmode="decimal" autocomplete="off" aria-describedby="posHint posErr"><select class="search" id="posCur" data-i18n-aria="avgCur"></select></span></label>
         </div>
         <div class="hint" id="posHint" data-i18n="posHint"></div>
         <div class="err" id="posErr" role="alert"></div>
@@ -306,7 +307,7 @@ const I18N = {
     addFirst: "Aggiungi il primo titolo", welcomeNote: "La lista resta salvata su questo dispositivo.",
     prevClose: "Chiusura prec.", periodStart: "Inizio periodo", high: "Massimo periodo", low: "Minimo periodo",
     posTitle: "La tua posizione", qty: "Quantità", avgPrice: "Prezzo medio di acquisto", savePos: "Salva", clearPos: "Rimuovi posizione",
-    posHint: "Prezzo nella valuta di quotazione del titolo. Il risultato non include l'effetto del cambio dall'acquisto.",
+    posHint: "Prezzo medio nella valuta di quotazione oppure in EUR o USD. Se la valuta è diversa da quella di quotazione, il risultato include l'effetto del cambio.", avgCur: "Valuta del prezzo medio",
     invalidNum: "Inserisci quantità e prezzo come numeri maggiori di zero.", plLabel: "Guadagno/perdita",
     periodLabel: "Periodo", curLabel: "Valuta", analysis: "Analisi finanziaria e valutazione",
     valTitle: "Valutazione", estimatesTitle: "Stime di valore", howToRead: "Come leggere questi indicatori", vsPrice: "rispetto al prezzo",
@@ -349,7 +350,7 @@ const I18N = {
     addFirst: "Add your first symbol", welcomeNote: "Your list is saved on this device.",
     prevClose: "Prev. close", periodStart: "Period start", high: "Period high", low: "Period low",
     posTitle: "Your position", qty: "Quantity", avgPrice: "Average purchase price", savePos: "Save", clearPos: "Remove position",
-    posHint: "Price in the stock's quote currency. The result does not include currency changes since purchase.",
+    posHint: "Average price in the quote currency, or in EUR or USD. If it differs from the quote currency, the result includes the currency effect.", avgCur: "Average price currency",
     invalidNum: "Enter quantity and price as numbers greater than zero.", plLabel: "Gain/loss",
     periodLabel: "Period", curLabel: "Currency", analysis: "Financial analysis and valuation",
     valTitle: "Valuation", estimatesTitle: "Value estimates", howToRead: "How to read these indicators", vsPrice: "versus price",
@@ -713,7 +714,7 @@ async function renderList(){
       const p = change(d, range);
       el.querySelector(".px").textContent = fmt(d.price * c.f, c.cur);
       el.querySelector(".chg").innerHTML = pillHtml(p);
-      const pl = plOf(d, w, c);
+      const pl = await plOf(d, w, c);
       if (pl){
         const pos = el.querySelector(".pos");
         pos.style.color = colorFor(pl.pct);
@@ -880,23 +881,32 @@ function parseNum(v){
   }
   return /^\d*\.?\d+$/.test(v) ? Number(v) : NaN;
 }
-function plOf(d, w, c){
+// guadagno/perdita nella valuta del prezzo medio (avgCur), poi convertito nella valuta di visualizzazione
+async function plOf(d, w, c){
   if (!(w.qty > 0 && w.avg > 0) || isIndex(d) || d.price == null) return null;
-  return { abs: (d.price - w.avg) * w.qty * c.f, pct: (d.price - w.avg) / w.avg * 100 };
+  const ac = w.avgCur || d.currency;
+  if (ac === d.currency) return { abs: (d.price - w.avg) * w.qty * c.f, pct: (d.price - w.avg) / w.avg * 100 };
+  try {
+    const n = normCur(d);
+    const px = d.price * n.k * await getRate(n.cur, ac); // prezzo di oggi al cambio di oggi: include l'effetto cambio
+    return { abs: (px - w.avg) * w.qty * await getRate(ac, c.cur), pct: (px - w.avg) / w.avg * 100 };
+  } catch(e){ return null; } // cambio non disponibile: meglio nessun risultato che uno sbagliato
 }
 const plText = (pl, c) => `${pl.abs >= 0 ? "+" : ""}${fmt(pl.abs, c.cur)} · ${pct(pl.pct)}`;
 const numVal = (v) => v == null ? "" : v.toLocaleString(LOC, { maximumFractionDigits: 8 });
 
-function renderPosition(d, c){
+async function renderPosition(d, c){
   const box = $("posBox"), w = watch.find((x) => x.symbol === detailSym);
   if (!w || isIndex(d)){ box.hidden = true; return; } // un indice non si possiede
   box._ctx = { d, c };
-  $("avgLbl").textContent = `${t("avgPrice")} (${d.currency})`;
+  $("posCur").replaceChildren(...[...new Set([d.currency, "EUR", "USD"])].map((x) => new Option(x, x)));
+  $("posCur").value = w.avgCur || d.currency;
   $("posQty").value = numVal(w.qty); $("posAvg").value = numVal(w.avg);
   ["posQty", "posAvg"].forEach((id) => $(id).removeAttribute("aria-invalid"));
   $("posErr").textContent = "";
   $("posClear").hidden = w.qty == null;
-  const pl = plOf(d, w, c);
+  const pl = await plOf(d, w, c);
+  if (detailSym !== w.symbol) return;
   $("posPl").innerHTML = pl ? `<span class="sr">${t("plLabel")}: </span><span style="color:${colorFor(pl.pct)}">${plText(pl, c)}</span>` : "";
   box.hidden = false;
 }
@@ -907,14 +917,14 @@ $("posForm").onsubmit = (e) => {
   const bad = [["posQty", q], ["posAvg", a]].filter(([, v]) => !(v > 0));
   ["posQty", "posAvg"].forEach((id) => $(id).setAttribute("aria-invalid", bad.some(([b]) => b === id)));
   if (bad.length){ $("posErr").textContent = t("invalidNum"); $(bad[0][0]).focus(); return; }
-  w.qty = q; w.avg = a;
+  w.qty = q; w.avg = a; w.avgCur = $("posCur").value;
   save("borsa.watch", watch);
   renderPosition($("posBox")._ctx.d, $("posBox")._ctx.c);
   renderList();
 };
 $("posClear").onclick = () => {
   const w = watch.find((x) => x.symbol === detailSym); if (!w) return;
-  delete w.qty; delete w.avg;
+  delete w.qty; delete w.avg; delete w.avgCur;
   save("borsa.watch", watch);
   renderPosition($("posBox")._ctx.d, $("posBox")._ctx.c);
   renderList();

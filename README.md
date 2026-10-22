@@ -105,3 +105,7 @@ netlify.toml               publish dir and manifest content type
 ## Disclaimer
 
 Market data comes from Yahoo Finance's unofficial endpoints and from Twelve Data, may be delayed or wrong, and can stop working if those services change. Valuation figures are mechanical estimates based on the assumptions above. Nothing in this app is financial advice.
+
+## License
+
+[MIT](LICENSE)

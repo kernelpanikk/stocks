@@ -193,6 +193,7 @@ svg.chart .ax{fill:var(--muted);font-size:12px;font-variant-numeric:tabular-nums
       <div class="sub" id="updated">—</div>
     </div>
     <div class="hbtns">
+      <button class="iconbtn" id="refreshBtn" data-i18n-aria="refresh"><span aria-hidden="true">↻</span></button>
       <button class="iconbtn lang" id="anaBtn" data-i18n-aria="analysis">P/E</button>
       <button class="iconbtn lang" id="langBtn"></button>
       <button class="iconbtn" id="themeBtn"></button>
@@ -293,7 +294,7 @@ const $ = (id) => document.getElementById(id);
 // ---------- lingua ----------
 const I18N = {
   it: {
-    r1d: "1G", r1w: "1S", r1m: "1M", r1y: "1A", orig: "Orig.", add: "Aggiungi titolo", close: "Chiudi",
+    r1d: "1G", r1w: "1S", r1m: "1M", r1y: "1A", orig: "Orig.", add: "Aggiungi titolo", refresh: "Aggiorna", close: "Chiudi",
     remove: "Rimuovi dalla lista", searchPh: "Nome o ticker (es. Nvidia, ENEL.MI, ^IXIC)",
     searchHint: "Puoi anche scrivere direttamente un ticker Yahoo Finance e premere Invio.",
     themeAuto: "Tema: automatico", themeDark: "Tema: scuro", themeLight: "Tema: chiaro", lang: "Lingua: italiano",
@@ -336,7 +337,7 @@ const I18N = {
     points: "punti", chg1d: "oggi", chg1w: "1 settimana", chg1m: "1 mese", chg1y: "1 anno",
   },
   en: {
-    r1d: "1D", r1w: "1W", r1m: "1M", r1y: "1Y", orig: "Orig.", add: "Add symbol", close: "Close",
+    r1d: "1D", r1w: "1W", r1m: "1M", r1y: "1Y", orig: "Orig.", add: "Add symbol", refresh: "Refresh", close: "Close",
     remove: "Remove from list", searchPh: "Name or ticker (e.g. Nvidia, ENEL.MI, ^IXIC)",
     searchHint: "You can also type a Yahoo Finance ticker directly and press Enter.",
     themeAuto: "Theme: automatic", themeDark: "Theme: dark", themeLight: "Theme: light", lang: "Language: English",
@@ -412,6 +413,13 @@ applyTheme();
 $("langBtn").onclick = () => {
   lang = LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length];
   save("borsa.lang", lang); applyLang(); applyTheme(); applyAnalysis(); renderList();
+  if ($("detail").classList.contains("open")) renderDetail();
+};
+
+$("refreshBtn").onclick = () => {
+  for (const k in cache) delete cache[k];
+  for (const k in fx) delete fx[k];
+  renderList();
   if ($("detail").classList.contains("open")) renderDetail();
 };
 

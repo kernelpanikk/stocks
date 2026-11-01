@@ -77,8 +77,16 @@ h1{font:600 32px/1.1 "Source Serif 4",Georgia,serif;margin:0;letter-spacing:-.01
 .list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,560px),1fr));gap:16px}
 @media (max-width:600px){ .list{grid-template-columns:1fr;gap:12px} }
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 16px 8px;box-shadow:var(--shadow);
-  cursor:pointer;min-width:0;transition:border-color .15s}
+  cursor:pointer;min-width:0;transition:border-color .15s,transform .2s;position:relative;touch-action:pan-y pinch-zoom}
 .card:hover{border-color:var(--field)}
+.card.swiped{transform:translateX(calc(var(--sx) * -1))}
+.card.swiping{transition:border-color .15s}
+/* la larghezza segue lo swipe: il tasto non sporge mai oltre il bordo originale della card */
+.del{position:absolute;top:-1px;bottom:-1px;left:calc(100% + 9px);width:max(0px,calc(var(--sx,0px) - 8px));padding:0;border:0;
+  border-radius:16px;background:var(--down);color:var(--bg);font-weight:600;overflow:hidden;white-space:nowrap;cursor:pointer;
+  visibility:hidden;transition:width .2s,visibility .2s}
+.card.swiped .del{visibility:visible}
+.card.swiping .del{transition:none}
 .chead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .chead{width:100%;border:0;background:transparent;padding:0;text-align:left;cursor:pointer;border-radius:8px;flex:1;min-width:0}
 .crow{display:flex;gap:4px;align-items:center}
@@ -295,7 +303,7 @@ const $ = (id) => document.getElementById(id);
 const I18N = {
   it: {
     r1d: "1G", r1w: "1S", r1m: "1M", r1y: "1A", orig: "Orig.", add: "Aggiungi titolo", refresh: "Aggiorna", close: "Chiudi",
-    remove: "Rimuovi dalla lista", searchPh: "Nome o ticker (es. Nvidia, ENEL.MI, ^IXIC)",
+    remove: "Rimuovi dalla lista", del: "Elimina", searchPh: "Nome o ticker (es. Nvidia, ENEL.MI, ^IXIC)",
     searchHint: "Puoi anche scrivere direttamente un ticker Yahoo Finance e premere Invio.",
     themeAuto: "Tema: automatico", themeDark: "Tema: scuro", themeLight: "Tema: chiaro", lang: "Lingua: italiano",
     noData: "Dati non disponibili", unavailable: "dati non disponibili", loadErr: "Impossibile caricare i dati",
@@ -338,7 +346,7 @@ const I18N = {
   },
   en: {
     r1d: "1D", r1w: "1W", r1m: "1M", r1y: "1Y", orig: "Orig.", add: "Add symbol", refresh: "Refresh", close: "Close",
-    remove: "Remove from list", searchPh: "Name or ticker (e.g. Nvidia, ENEL.MI, ^IXIC)",
+    remove: "Remove from list", del: "Delete", searchPh: "Name or ticker (e.g. Nvidia, ENEL.MI, ^IXIC)",
     searchHint: "You can also type a Yahoo Finance ticker directly and press Enter.",
     themeAuto: "Theme: automatic", themeDark: "Theme: dark", themeLight: "Theme: light", lang: "Language: English",
     noData: "No data available", unavailable: "data unavailable", loadErr: "Couldn't load data",
@@ -665,11 +673,62 @@ function setupGrip(el, grip){
   };
 }
 
+// ---------- swipe per eliminare ----------
+let swipedCard = null, swallowClick = false;
+function setSwipe(el, x){
+  el.style.setProperty("--sx", x + "px");
+  el.classList.toggle("swiped", x > 0);
+  swipedCard = x > 0 ? el : null;
+}
+// come su iOS: con il tasto Elimina visibile, un tocco altrove chiude e basta
+document.addEventListener("pointerdown", (e) => {
+  swallowClick = !!swipedCard && !e.target.closest(".del");
+  if (swallowClick) setSwipe(swipedCard, 0);
+}, true);
+document.addEventListener("click", (e) => {
+  if (swallowClick){ swallowClick = false; e.stopPropagation(); e.preventDefault(); }
+}, true);
+function setupSwipe(el){
+  const w = el._w;
+  let start = null, x = 0;
+  el.querySelector(".del").onclick = (e) => { e.stopPropagation(); removeSymbol(w.symbol); };
+  el.onpointerdown = (e) => {
+    if (e.pointerType === "mouse" || !e.isPrimary || e.target.closest(".grip,.del")) return;
+    start = { x: e.clientX, y: e.clientY, on: false };
+  };
+  el.onpointermove = (e) => {
+    if (!start) return;
+    x = start.x - e.clientX;
+    if (!start.on){
+      if (Math.abs(x) < 10) return;
+      if (x < 0 || Math.abs(e.clientY - start.y) > x){ start = null; return; }
+      start.on = true;
+      dragging = el; // blocca renderList durante lo swipe
+      el.setPointerCapture(e.pointerId);
+      el.classList.add("swiping");
+    }
+    x = Math.max(x, 0);
+    setSwipe(el, x);
+  };
+  el.onpointerup = el.onpointercancel = (e) => {
+    const swiped = start?.on;
+    start = null;
+    if (!swiped) return;
+    dragging = null; el.classList.remove("swiping");
+    swallowClick = true;
+    const up = e.type === "pointerup";
+    // swipe lungo = elimina subito, ma non se c'è una posizione: quantità e prezzo andrebbero persi senza conferma
+    if (up && x > el.offsetWidth * .6 && !w.qty) removeSymbol(w.symbol);
+    else setSwipe(el, up && x > 44 ? 88 : 0);
+  };
+}
+
 // ---------- lista ----------
 const isMobile = () => matchMedia("(max-width: 600px)").matches;
 const openCards = new Set(); // card aperte su mobile: solo in memoria, all'avvio sono tutte chiuse
 async function renderList(){
   if (dragging) return; // non ricostruire la lista durante un trascinamento
+  swipedCard = null;
   const list = $("list");
   list.querySelectorAll("svg").forEach((s) => ro.unobserve(s));
   if (!watch.length){ // testi statici del dizionario: sicuri in innerHTML
@@ -698,6 +757,7 @@ async function renderList(){
       <div class="ctip"></div>
       <svg class="chart"></svg>
       <button type="button" class="more">${t("details")}</button>
+      <button type="button" class="del">${t("del")}</button>
     </div>`).join("");
   list.querySelectorAll(".card").forEach((el) => {
     const w = watch[+el.dataset.i];
@@ -711,6 +771,7 @@ async function renderList(){
     el.onclick = () => openDetail(w.symbol);
     el._w = w;
     setupGrip(el, el.querySelector(".grip"));
+    setupSwipe(el);
     setupChart(el.querySelector("svg"), el.querySelector(".ctip"), false);
   });
 
@@ -1067,11 +1128,14 @@ function addSymbol(symbol, label){
   renderList();
 }
 
-$("removeBtn").onclick = () => {
-  watch = watch.filter((w) => w.symbol !== detailSym);
+function removeSymbol(symbol){
+  watch = watch.filter((w) => w.symbol !== symbol);
   save("borsa.watch", watch);
-  closeSheet($("detail"));
   renderList();
+}
+$("removeBtn").onclick = () => {
+  closeSheet($("detail"));
+  removeSymbol(detailSym);
 };
 
 // ---------- controlli ----------

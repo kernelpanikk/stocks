@@ -143,6 +143,8 @@ svg.chart .ax{fill:var(--muted);font-size:12px;font-variant-numeric:tabular-nums
 .dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .dname{font:600 26px/1.2 "Source Serif 4",Georgia,serif;margin:0}
 .dmeta{color:var(--muted);font-size:13px}
+.dsticky{position:sticky;top:0;z-index:5;background:var(--bg);margin:4px -16px 0;padding:8px 16px}
+@media (min-width:900px){ .dsticky{margin:4px -28px 0;padding:8px 28px} }
 .dprice{font-size:34px;font-weight:700;margin:12px 0 0;font-variant-numeric:tabular-nums}
 .dchg{font-weight:600;font-variant-numeric:tabular-nums}
 .chartbox{background:var(--card);border:1px solid var(--line);border-radius:16px;margin:14px 0;padding:10px 14px 8px;box-shadow:var(--shadow)}
@@ -237,9 +239,9 @@ svg.chart .ax{fill:var(--muted);font-size:12px;font-variant-numeric:tabular-nums
     </div>
     <div class="dprice" id="dPrice"></div>
     <div class="dchg" id="dChg"></div>
-    <div class="seg" id="dRangeSeg" style="margin-top:12px" role="group" data-i18n-aria="periodLabel">
+    <div class="dsticky"><div class="seg" id="dRangeSeg" role="group" data-i18n-aria="periodLabel">
       <button data-v="1d" data-i18n="r1d"></button><button data-v="1w" data-i18n="r1w"></button><button data-v="1m" data-i18n="r1m"></button><button data-v="1y" data-i18n="r1y"></button>
-    </div>
+    </div></div>
     <div class="chartbox">
       <div class="ctop">
         <div class="ctip" id="tip"></div>

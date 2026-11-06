@@ -68,7 +68,9 @@ h1{font:600 32px/1.1 "Source Serif 4",Georgia,serif;margin:0;letter-spacing:-.01
 @media (max-width:420px){ .hbtns{gap:6px} .hbtns .iconbtn{width:36px;height:36px} }
 #addBtn{background:var(--primary);border-color:var(--primary);color:var(--onPrimary)}
 #addBtn:hover{background:var(--primaryHover)}
-.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin:0 calc(-1 * clamp(16px,2.5vw,48px)) 4px;
+  padding:8px clamp(16px,2.5vw,48px);position:sticky;top:env(safe-area-inset-top);z-index:5;
+  background:var(--bg);border-bottom:1px solid transparent}
 .seg{display:inline-flex;background:var(--chip);border-radius:8px;padding:3px;gap:2px}
 .seg button{border:0;background:transparent;color:var(--muted);font-size:13px;font-weight:600;
   padding:6px 12px;border-radius:6px;cursor:pointer;min-height:32px}
